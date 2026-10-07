@@ -3,7 +3,7 @@
  */
 
 import { requireAuth, isOwner, getCurrentUser } from "./auth.js";
-import { renderHeader, formatINR, formatDate, formatDateTime, showToast } from "./common.js";
+import { renderHeader, formatINR, formatDate, formatDateTime, showToast, escapeHtml } from "./common.js";
 import { dbStore } from "./firebase-config.js";
 import { evaluateNotifications } from "./notifications.js";
 
@@ -54,12 +54,12 @@ function renderBookingsSection(bookings = []) {
           <div style="font-size: 0.75rem; color: #666;">${b.fromDateTime ? b.fromDateTime.split('T')[1] : ''} - ${b.toDateTime ? b.toDateTime.split('T')[1] : ''}</div>
         </td>
         <td>
-          <div style="font-weight: 600;">${b.customerName}</div>
-          <div style="font-size: 0.75rem; color: #666;">${b.eventDesc || 'Wedding & Reception'}</div>
+          <div style="font-weight: 600;">${escapeHtml(b.customerName)}</div>
+          <div style="font-size: 0.75rem; color: #666;">${escapeHtml(b.eventDesc || 'Wedding & Reception')}</div>
         </td>
         <td>
-          <div style="font-size: 0.82rem;"><a href="tel:${b.phone1}">${b.phone1}</a></div>
-          ${b.phone2 ? `<div style="font-size: 0.75rem; color: #888;"><a href="tel:${b.phone2}">${b.phone2}</a></div>` : ''}
+          <div style="font-size: 0.82rem;"><a href="tel:${escapeHtml(b.phone1)}">${escapeHtml(b.phone1)}</a></div>
+          ${b.phone2 ? `<div style="font-size: 0.75rem; color: #888;"><a href="tel:${escapeHtml(b.phone2)}">${escapeHtml(b.phone2)}</a></div>` : ''}
         </td>
         <td>
           <span class="badge ${statusClass}">${b.status}</span>

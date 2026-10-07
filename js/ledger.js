@@ -3,7 +3,7 @@
  */
 
 import { requireAuth, isOwner, getCurrentUser } from "./auth.js";
-import { renderHeader, formatINR, formatDate, numberToWordsINR, showToast, openModal, closeModal } from "./common.js";
+import { renderHeader, formatINR, formatDate, numberToWordsINR, showToast, openModal, closeModal, escapeHtml } from "./common.js";
 import { dbStore } from "./firebase-config.js";
 import { evaluateNotifications } from "./notifications.js";
 
@@ -207,6 +207,10 @@ function handleSaveEntry() {
   const type = document.getElementById("entry-type").value;
   const category = document.getElementById("entry-category").value;
   const amount = Number(document.getElementById("entry-amount").value);
+  if (isNaN(amount) || amount <= 0) {
+    showToast("Please enter a valid positive amount.", "warning");
+    return;
+  }
   const bookingId = document.getElementById("entry-booking").value;
   const user = getCurrentUser();
 
@@ -284,17 +288,17 @@ function renderLedgerTable(ledger = []) {
             ${isIncome ? 'Income' : 'Expense'}
           </span>
         </td>
-        <td><strong>${item.category}</strong></td>
+        <td><strong>${escapeHtml(item.category || '')}</strong></td>
         <td>
-          <div style="max-width: 320px; font-size: 0.85rem;">${item.description || '—'}</div>
+          <div style="max-width: 320px; font-size: 0.85rem;">${escapeHtml(item.description || '—')}</div>
         </td>
         <td style="font-size: 0.82rem;">
-          ${linkedBk ? `<a href="bookings.html">#${linkedBk.bookingNo} (${linkedBk.customerName})</a>` : '<span style="color: #999;">—</span>'}
+          ${linkedBk ? `<a href="bookings.html">#${escapeHtml(linkedBk.bookingNo || '')} (${escapeHtml(linkedBk.customerName || '')})</a>` : '<span style="color: #999;">—</span>'}
         </td>
         <td class="text-right" style="font-weight: 800; color: ${isIncome ? '#2E7D32' : '#C62828'};">
           ${isIncome ? '+' : '-'}${formatINR(item.amount)}
         </td>
-        <td style="font-size: 0.82rem; color: #666;">${item.loggedBy || 'Staff'}</td>
+        <td style="font-size: 0.82rem; color: #666;">${escapeHtml(item.loggedBy || 'Staff')}</td>
         <td style="text-align: right; white-space: nowrap;">
           <div style="display: inline-flex; gap: 6px; justify-content: flex-end; align-items: center;">
             <button class="btn btn-sm btn-secondary edit-entry-btn" data-id="${item.id}" style="padding: 0.3rem 0.65rem; font-size: 0.78rem;">Edit</button>

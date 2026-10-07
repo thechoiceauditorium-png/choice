@@ -3,7 +3,7 @@
  */
 
 import { requireAuth, isOwner } from "./auth.js";
-import { renderHeader, showToast, openModal, closeModal } from "./common.js";
+import { renderHeader, showToast, openModal, closeModal, escapeHtml } from "./common.js";
 import { dbStore } from "./firebase-config.js";
 import { evaluateNotifications } from "./notifications.js";
 
@@ -41,21 +41,21 @@ function renderCoreTeam() {
     <div style="background: #FFF; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.25rem; box-shadow: var(--shadow-sm); border-top: 3px solid ${u.role === 'owner' ? 'var(--brand-red)' : '#00796B'};">
       <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
         <div>
-          <h4 style="font-size: 1.05rem; margin-bottom: 2px;">${u.name}</h4>
-          <span class="role-tag ${u.role === 'owner' ? 'role-owner' : 'role-worker'}">${u.title || ''} (${u.role})</span>
+          <h4 style="font-size: 1.05rem; margin-bottom: 2px;">${escapeHtml(u.name || '')}</h4>
+          <span class="role-tag ${u.role === 'owner' ? 'role-owner' : 'role-worker'}">${escapeHtml(u.title || '')} (${escapeHtml(u.role || '')})</span>
         </div>
         <div class="user-avatar" style="background: ${u.role === 'owner' ? 'var(--brand-red)' : '#00796B'}; width: 34px; height: 34px;">
-          ${u.avatar || (u.name ? u.name.slice(0, 2).toUpperCase() : 'U')}
+          ${escapeHtml(u.avatar || (u.name ? u.name.slice(0, 2).toUpperCase() : 'U'))}
         </div>
       </div>
       
       <div style="margin-top: 0.75rem; font-size: 0.88rem; line-height: 1.6;">
         <div>
-          Tel: <a href="tel:${u.phone}" style="font-weight: bold; color: var(--text);">${u.phone || '—'}</a>
+          Tel: <a href="tel:${escapeHtml(u.phone || '')}" style="font-weight: bold; color: var(--text);">${escapeHtml(u.phone || '—')}</a>
         </div>
         ${u.email && u.email !== '—' ? `
           <div style="font-size: 0.8rem; color: #666; word-break: break-all;">
-            Email: <a href="mailto:${u.email}">${u.email}</a>
+            Email: <a href="mailto:${escapeHtml(u.email)}">${escapeHtml(u.email)}</a>
           </div>
         ` : '<div style="font-size: 0.8rem; color: #999;">Phone communication</div>'}
       </div>
@@ -84,15 +84,15 @@ function renderDirectoryTable(directory = []) {
 
   tbody.innerHTML = filtered.map(item => `
     <tr>
-      <td><strong>${item.name}</strong></td>
-      <td>${item.role}</td>
+      <td><strong>${escapeHtml(item.name || '')}</strong></td>
+      <td>${escapeHtml(item.role || '')}</td>
       <td>
-        <span class="badge" style="background: #F0F0F0; color: #333;">${item.category}</span>
+        <span class="badge" style="background: #F0F0F0; color: #333;">${escapeHtml(item.category || '')}</span>
       </td>
       <td>
-        <a href="tel:${item.phone}" style="font-weight: bold; color: var(--brand-red);">${item.phone}</a>
+        <a href="tel:${escapeHtml(item.phone || '')}" style="font-weight: bold; color: var(--brand-red);">${escapeHtml(item.phone || '')}</a>
       </td>
-      <td style="font-size: 0.82rem; color: #666;">${item.notes || '—'}</td>
+      <td style="font-size: 0.82rem; color: #666;">${escapeHtml(item.notes || '—')}</td>
       <td class="text-right">
         <button class="btn btn-sm btn-secondary edit-dir-btn" data-id="${item.id}">Edit</button>
         ${isOwner() ? `<button class="btn btn-sm btn-danger del-dir-btn" data-id="${item.id}" style="padding: 0.2rem 0.4rem;">Delete</button>` : ''}

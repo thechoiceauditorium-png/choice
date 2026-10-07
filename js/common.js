@@ -11,6 +11,17 @@ export function formatINR(amount) {
   return "₹" + val.toLocaleString("en-IN");
 }
 
+// XSS Sanitizer: Escape HTML characters in user-generated strings
+export function escapeHtml(str) {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 // Format date strings
 export function formatDate(dateStr) {
   if (!dateStr) return "-";

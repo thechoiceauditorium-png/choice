@@ -4,7 +4,7 @@
  */
 
 import { requireAuth, isOwner, getCurrentUser } from "./auth.js";
-import { renderHeader, formatDate, formatDateTime, showToast, openModal, closeModal } from "./common.js";
+import { renderHeader, formatDate, formatDateTime, showToast, openModal, closeModal, escapeHtml } from "./common.js";
 import { dbStore } from "./firebase-config.js";
 import { evaluateNotifications } from "./notifications.js";
 
@@ -88,9 +88,11 @@ function renderChecklistTabs(checklists = []) {
     else if (c.type === "beforeFunction") tag = "Before";
     else if (c.type === "afterFunction") tag = "After";
 
+    const displayTitle = (c.title || '').slice(0, 24) + ((c.title || '').length > 24 ? '...' : '');
+
     return `
       <button class="btn btn-sm ${isActive ? 'btn-primary' : 'btn-secondary'}" data-id="${c.id}" style="white-space: nowrap;">
-        ${tag}: ${c.title.slice(0, 24)}${c.title.length > 24 ? '...' : ''} (${doneCount}/${total})
+        ${tag}: ${escapeHtml(displayTitle)} (${doneCount}/${total})
       </button>
     `;
   }).join("");
@@ -123,10 +125,10 @@ function renderActiveChecklist(checklists = []) {
   container.innerHTML = `
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.75rem; border-bottom: 1px solid var(--border); padding-bottom: 0.85rem;">
       <div>
-        <h3 style="font-size: 1.15rem; color: var(--text);">${current.title}</h3>
+        <h3 style="font-size: 1.15rem; color: var(--text);">${escapeHtml(current.title || '')}</h3>
         <div style="font-size: 0.78rem; color: #777; margin-top: 2px;">
-          Created: ${formatDateTime(current.createdAt)} · Type: <span style="text-transform: capitalize;">${current.type}</span>
-          ${current.bookingNo ? ` · Booking: <strong>#${current.bookingNo}</strong>` : ''}
+          Created: ${formatDateTime(current.createdAt)} · Type: <span style="text-transform: capitalize;">${escapeHtml(current.type || '')}</span>
+          ${current.bookingNo ? ` · Booking: <strong>#${escapeHtml(current.bookingNo)}</strong>` : ''}
         </div>
       </div>
       <div style="display: flex; gap: 0.5rem; align-items: center;">
@@ -156,7 +158,7 @@ function renderActiveChecklist(checklists = []) {
             <tr style="${item.done ? 'background: #FAFCFA;' : ''}">
               <td class="text-center font-weight-bold">${item.sl || idx + 1}</td>
               <td style="font-size: 0.88rem; font-weight: ${item.done ? '500' : '600'}; color: ${item.done ? '#555' : '#1A1A1A'};">
-                ${item.text}
+                ${escapeHtml(item.text || '')}
               </td>
               <td class="text-center">
                 <input type="checkbox" class="chk-item-toggle" data-index="${idx}" ${item.done ? 'checked' : ''} style="width: 18px; height: 18px; cursor: pointer;">
@@ -164,7 +166,7 @@ function renderActiveChecklist(checklists = []) {
               <td>
                 <div style="display: flex; align-items: center; gap: 4px;">
                   <span style="font-size: 0.82rem; font-weight: bold; color: ${item.signedBy ? '#2E7D32' : '#999'};">
-                    ${item.signedBy || 'Pending'}
+                    ${escapeHtml(item.signedBy || 'Pending')}
                   </span>
                   ${!item.signedBy ? `
                     <button class="btn btn-sm btn-secondary sign-item-btn" data-index="${idx}" style="padding: 0.15rem 0.4rem; font-size: 0.7rem;">
@@ -176,7 +178,7 @@ function renderActiveChecklist(checklists = []) {
               <td>
                 <div style="display: flex; align-items: center; gap: 4px;">
                   <span style="font-size: 0.82rem; font-weight: bold; color: ${item.verifiedBy ? '#1565C0' : '#999'};">
-                    ${item.verifiedBy || 'Pending'}
+                    ${escapeHtml(item.verifiedBy || 'Pending')}
                   </span>
                   ${userIsOwner && !item.verifiedBy ? `
                     <button class="btn btn-sm btn-outline verify-item-btn" data-index="${idx}" style="padding: 0.15rem 0.4rem; font-size: 0.7rem;">
@@ -186,7 +188,7 @@ function renderActiveChecklist(checklists = []) {
                 </div>
               </td>
               <td style="font-size: 0.75rem; color: #888;">
-                ${item.timestamp || '—'}
+                ${escapeHtml(item.timestamp || '—')}
               </td>
               <td class="text-right">
                 <button class="btn btn-sm btn-secondary edit-item-btn" data-index="${idx}" style="padding: 0.2rem 0.45rem; font-size: 0.72rem;">Edit</button>
@@ -392,7 +394,7 @@ function openNewChecklistModal() {
     bkSelect.innerHTML = `<option value="">No confirmed bookings available</option>`;
   } else {
     bkSelect.innerHTML = bookings.map(b => `
-      <option value="${b.id}">#${b.bookingNo} - ${b.customerName} (${formatDate(b.reservationDate)})</option>
+      <option value="${b.id}">#${escapeHtml(b.bookingNo || '')} - ${escapeHtml(b.customerName || '')} (${formatDate(b.reservationDate)})</option>
     `).join("");
   }
 

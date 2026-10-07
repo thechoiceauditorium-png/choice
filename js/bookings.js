@@ -3,7 +3,7 @@
  */
 
 import { requireAuth, isOwner } from "./auth.js";
-import { renderHeader, formatINR, formatDate, formatDateTime, numberToWordsINR, showToast, openModal, closeModal } from "./common.js";
+import { renderHeader, formatINR, formatDate, formatDateTime, numberToWordsINR, showToast, openModal, closeModal, escapeHtml } from "./common.js";
 import { dbStore } from "./firebase-config.js";
 import { evaluateNotifications } from "./notifications.js";
 
@@ -200,14 +200,14 @@ function renderListView(bookings = []) {
         <div style="font-size: 0.75rem; color: #666;">${b.fromDateTime ? b.fromDateTime.replace('T', ' ') : ''} to ${b.toDateTime ? b.toDateTime.replace('T', ' ') : ''}</div>
       </td>
       <td>
-        <div style="font-weight: 600;">${b.customerName}</div>
-        <div style="font-size: 0.75rem; color: #777;">${b.address || '—'}</div>
+        <div style="font-weight: 600;">${escapeHtml(b.customerName)}</div>
+        <div style="font-size: 0.75rem; color: #777;">${escapeHtml(b.address || '—')}</div>
       </td>
       <td>
-        <div><a href="tel:${b.phone1}">${b.phone1}</a></div>
-        <div style="font-size: 0.75rem; color: #888;"><a href="tel:${b.phone2}">${b.phone2}</a></div>
+        <div><a href="tel:${escapeHtml(b.phone1)}">${escapeHtml(b.phone1)}</a></div>
+        <div style="font-size: 0.75rem; color: #888;"><a href="tel:${escapeHtml(b.phone2)}">${escapeHtml(b.phone2)}</a></div>
       </td>
-      <td style="font-size: 0.8rem; color: #666;">${b.reference || '—'}</td>
+      <td style="font-size: 0.8rem; color: #666;">${escapeHtml(b.reference || '—')}</td>
       <td style="font-weight: 700;">${formatINR(b.grandTotal)}</td>
       <td style="font-weight: 700; color: ${b.balanceAmount > 0 ? '#C62828' : '#2E7D32'};">
         ${b.balanceAmount > 0 ? formatINR(b.balanceAmount) : 'Paid'}
@@ -324,7 +324,7 @@ function openBookingModal(booking = null, defaultDate = null) {
 }
 
 function recalculateFormFinancials() {
-  const getVal = (id) => Number(document.getElementById(id)?.value) || 0;
+  const getVal = (id) => Math.max(0, Number(document.getElementById(id)?.value) || 0);
 
   const totalAmount =
     getVal("li-rent-amt") +
@@ -420,7 +420,7 @@ function handleSaveBooking() {
     return;
   }
 
-  const getVal = (id) => Number(document.getElementById(id)?.value) || 0;
+  const getVal = (id) => Math.max(0, Number(document.getElementById(id)?.value) || 0);
 
   const lineItems = {
     rent: { advance: getVal("li-rent-adv"), amount: getVal("li-rent-amt") },

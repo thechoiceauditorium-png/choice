@@ -4,7 +4,7 @@
  */
 
 import { requireAuth, isOwner, getCurrentUser } from "./auth.js";
-import { renderHeader, formatDate, formatDateTime, formatINR, showToast, openModal, closeModal } from "./common.js";
+import { renderHeader, formatDate, formatDateTime, formatINR, showToast, openModal, closeModal, escapeHtml } from "./common.js";
 import { dbStore } from "./firebase-config.js";
 import { evaluateNotifications } from "./notifications.js";
 
@@ -110,15 +110,15 @@ function renderComplianceTable(compliance = []) {
     return `
       <tr>
         <td>
-          <div style="font-weight: 700;">${c.title}</div>
-          ${c.cycle ? `<div style="font-size: 0.75rem; color: #666;">Cycle: ${c.cycle}</div>` : ''}
+          <div style="font-weight: 700;">${escapeHtml(c.title || '')}</div>
+          ${c.cycle ? `<div style="font-size: 0.75rem; color: #666;">Cycle: ${escapeHtml(c.cycle)}</div>` : ''}
         </td>
-        <td><span style="font-size: 0.82rem; font-weight: 600;">${c.recurrence || 'Annual'}</span></td>
+        <td><span style="font-size: 0.82rem; font-weight: 600;">${escapeHtml(c.recurrence || 'Annual')}</span></td>
         <td><strong>${formatDate(c.dueDate)}</strong></td>
-        <td style="font-size: 0.82rem; color: #666;">${c.leadDays || 15} days lead</td>
-        <td style="font-weight: 600; font-size: 0.85rem;">${c.responsible}</td>
-        <td><span class="badge ${badgeClass}">${c.status}</span></td>
-        <td style="font-size: 0.8rem; color: #666; max-width: 220px;">${c.notes || '—'}</td>
+        <td style="font-size: 0.82rem; color: #666;">${escapeHtml(String(c.leadDays || 15))} days lead</td>
+        <td style="font-weight: 600; font-size: 0.85rem;">${escapeHtml(c.responsible || '')}</td>
+        <td><span class="badge ${badgeClass}">${escapeHtml(c.status || '')}</span></td>
+        <td style="font-size: 0.8rem; color: #666; max-width: 220px;">${escapeHtml(c.notes || '—')}</td>
         <td class="text-right" style="white-space: nowrap;">
           <div style="display: inline-flex; gap: 0.35rem; justify-content: flex-end; align-items: center;">
             <button class="btn btn-sm btn-success mark-done-btn" data-id="${c.id}">
@@ -255,14 +255,14 @@ function renderComplianceHistory() {
   tbody.innerHTML = sorted.map(h => `
     <tr>
       <td><strong>${formatDate(h.completedDate)}</strong></td>
-      <td><div style="font-weight: 700;">${h.title}</div></td>
-      <td style="font-size: 0.82rem; color: #666;">${h.cycle || '—'}</td>
-      <td style="font-size: 0.85rem; font-weight: 600;">${h.completedBy || 'Elby Abin'}</td>
-      <td style="font-family: monospace; font-size: 0.82rem; color: #444;">${h.refNo || '—'}</td>
+      <td><div style="font-weight: 700;">${escapeHtml(h.title || '')}</div></td>
+      <td style="font-size: 0.82rem; color: #666;">${escapeHtml(h.cycle || '—')}</td>
+      <td style="font-size: 0.85rem; font-weight: 600;">${escapeHtml(h.completedBy || 'Elby Abin')}</td>
+      <td style="font-family: monospace; font-size: 0.82rem; color: #444;">${escapeHtml(h.refNo || '—')}</td>
       <td style="font-weight: 600; color: ${h.amountPaid > 0 ? '#2E7D32' : '#888'};">
         ${h.amountPaid > 0 ? formatINR(h.amountPaid) : '—'}
       </td>
-      <td style="font-size: 0.8rem; color: #555; max-width: 250px;">${h.notes || '—'}</td>
+      <td style="font-size: 0.8rem; color: #555; max-width: 250px;">${escapeHtml(h.notes || '—')}</td>
     </tr>
   `).join("");
 }

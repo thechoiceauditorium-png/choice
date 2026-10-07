@@ -4,7 +4,7 @@
  */
 
 import { requireAuth, isOwner, isWorker, getCurrentUser } from "./auth.js";
-import { renderHeader, formatDate, formatDateTime, showToast } from "./common.js";
+import { renderHeader, formatDate, formatDateTime, showToast, escapeHtml } from "./common.js";
 import { dbStore } from "./firebase-config.js";
 import { evaluateNotifications } from "./notifications.js";
 
@@ -112,10 +112,10 @@ function loadMarkingForSelectedDate(attendance = []) {
     if (existing) {
       if (approvalStatus === "Approved") {
         badgeHtml = `<span class="badge badge-approved">Approved</span>`;
-        auditHtml = `Marked by ${existing.markedBy || worker.name} · Approved by ${existing.approvedBy || 'Owner'} (${formatDateTime(existing.approvedAt || existing.markedAt)})`;
+        auditHtml = `Marked by ${escapeHtml(existing.markedBy || worker.name)} · Approved by ${escapeHtml(existing.approvedBy || 'Owner')} (${formatDateTime(existing.approvedAt || existing.markedAt)})`;
       } else {
         badgeHtml = `<span class="badge badge-pending">Pending Approval</span>`;
-        auditHtml = `Submitted by ${existing.markedBy || worker.name} at ${formatDateTime(existing.markedAt)} · Awaiting owner sign-off`;
+        auditHtml = `Submitted by ${escapeHtml(existing.markedBy || worker.name)} at ${formatDateTime(existing.markedAt)} · Awaiting owner sign-off`;
       }
     }
 
@@ -124,7 +124,7 @@ function loadMarkingForSelectedDate(attendance = []) {
     if (isThisWorker) {
       const btnLabel = existing ? (approvalStatus === "Approved" ? "Update & Resubmit" : "Save Changes") : "Submit Attendance for Approval";
       actionBtnHtml = `
-        <button class="btn btn-primary btn-sm" style="width: 100%; margin-top: 0.75rem;" onclick="window.choiceAttendance.submitAttendance('${worker.id}')">
+        <button class="btn btn-primary btn-sm" style="width: 100%; margin-top: 0.75rem;" onclick="window.choiceAttendance.submitAttendance('${escapeHtml(worker.id)}')">
           ${btnLabel}
         </button>
       `;
@@ -132,10 +132,10 @@ function loadMarkingForSelectedDate(attendance = []) {
       if (existing && approvalStatus === "Pending Approval") {
         actionBtnHtml = `
           <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem; flex-wrap: wrap;">
-            <button class="btn btn-success btn-sm" style="flex: 1;" onclick="window.choiceAttendance.approveAttendance('${worker.id}')">
+            <button class="btn btn-success btn-sm" style="flex: 1;" onclick="window.choiceAttendance.approveAttendance('${escapeHtml(worker.id)}')">
               Approve Attendance
             </button>
-            <button class="btn btn-outline btn-sm" style="flex: 1;" onclick="window.choiceAttendance.saveAndApproveAttendance('${worker.id}')">
+            <button class="btn btn-outline btn-sm" style="flex: 1;" onclick="window.choiceAttendance.saveAndApproveAttendance('${escapeHtml(worker.id)}')">
               Save Changes & Approve
             </button>
           </div>
@@ -144,14 +144,14 @@ function loadMarkingForSelectedDate(attendance = []) {
         actionBtnHtml = `
           <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.75rem;">
             <span style="font-size: 0.8rem; color: #2E7D32; font-weight: 600;">Verified and Confirmed</span>
-            <button class="btn btn-outline btn-sm" onclick="window.choiceAttendance.saveAndApproveAttendance('${worker.id}')">
+            <button class="btn btn-outline btn-sm" onclick="window.choiceAttendance.saveAndApproveAttendance('${escapeHtml(worker.id)}')">
               Edit & Re-Approve
             </button>
           </div>
         `;
       } else {
         actionBtnHtml = `
-          <button class="btn btn-outline btn-sm" style="width: 100%; margin-top: 0.75rem;" onclick="window.choiceAttendance.saveAndApproveAttendance('${worker.id}')">
+          <button class="btn btn-outline btn-sm" style="width: 100%; margin-top: 0.75rem;" onclick="window.choiceAttendance.saveAndApproveAttendance('${escapeHtml(worker.id)}')">
             Mark on Worker's Behalf & Approve
           </button>
         `;
@@ -163,8 +163,8 @@ function loadMarkingForSelectedDate(attendance = []) {
         <div>
           <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border); padding-bottom: 0.6rem;">
             <div>
-              <h4 style="font-size: 1.05rem; margin-bottom: 2px;">${worker.name}</h4>
-              <div style="font-size: 0.78rem; color: #777;">${worker.title} · <a href="tel:${worker.phone}">${worker.phone}</a></div>
+              <h4 style="font-size: 1.05rem; margin-bottom: 2px;">${escapeHtml(worker.name || '')}</h4>
+              <div style="font-size: 0.78rem; color: #777;">${escapeHtml(worker.title || '')} · <a href="tel:${escapeHtml(worker.phone || '')}">${escapeHtml(worker.phone || '')}</a></div>
             </div>
             <div>
               ${badgeHtml}
@@ -191,7 +191,7 @@ function loadMarkingForSelectedDate(attendance = []) {
 
           <div class="form-group" style="margin-bottom: 0.5rem;">
             <label class="form-label" for="note_${worker.id}" style="font-size: 0.82rem;">Duty Notes / Reason for Leave</label>
-            <input type="text" id="note_${worker.id}" class="form-control" placeholder="e.g. Stage arrangement, hall mopping, personal leave" value="${note}" ${!canEdit ? 'disabled' : ''}>
+            <input type="text" id="note_${worker.id}" class="form-control" placeholder="e.g. Stage arrangement, hall mopping, personal leave" value="${escapeHtml(note)}" ${!canEdit ? 'disabled' : ''}>
           </div>
 
           <div style="font-size: 0.72rem; color: #777; margin-top: 0.4rem; min-height: 1.2rem;">
@@ -432,12 +432,12 @@ function renderMonthlyAttendance(attendance = []) {
 
     const approvalBadge = isPending
       ? `<span class="badge badge-pending">Pending Approval</span>`
-      : `<span class="badge badge-approved">Approved</span> <div style="font-size: 0.7rem; color: #666; margin-top: 2px;">by ${a.approvedBy || 'Owner'}</div>`;
+      : `<span class="badge badge-approved">Approved</span> <div style="font-size: 0.7rem; color: #666; margin-top: 2px;">by ${escapeHtml(a.approvedBy || 'Owner')}</div>`;
 
     let actionCell = `<span style="font-size: 0.78rem; color: #999;">${a.approvalStatus === 'Approved' ? 'Confirmed' : '—'}</span>`;
     if (userIsOwner && isPending) {
       actionCell = `
-        <button class="btn btn-sm btn-success" onclick="window.choiceAttendance.approveByRecordId('${a.id}')">
+        <button class="btn btn-sm btn-success" onclick="window.choiceAttendance.approveByRecordId('${escapeHtml(a.id)}')">
           Approve
         </button>
       `;
@@ -446,12 +446,12 @@ function renderMonthlyAttendance(attendance = []) {
     return `
       <tr>
         <td><strong>${formatDate(a.date)}</strong></td>
-        <td><strong>${a.workerName}</strong></td>
-        <td style="font-size: 0.8rem; color: #666;">${worker.title}</td>
-        <td><span class="badge ${statusClass}" style="text-transform: capitalize;">${a.status}</span></td>
-        <td style="font-size: 0.82rem;">${a.note || '—'}</td>
+        <td><strong>${escapeHtml(a.workerName || '')}</strong></td>
+        <td style="font-size: 0.8rem; color: #666;">${escapeHtml(worker.title || '')}</td>
+        <td><span class="badge ${statusClass}" style="text-transform: capitalize;">${escapeHtml(a.status || '')}</span></td>
+        <td style="font-size: 0.82rem;">${escapeHtml(a.note || '—')}</td>
         <td style="font-size: 0.82rem; color: #555;">
-          ${a.markedBy || worker.name}
+          ${escapeHtml(a.markedBy || worker.name || '')}
           <div style="font-size: 0.7rem; color: #888;">${formatDateTime(a.markedAt)}</div>
         </td>
         <td>${approvalBadge}</td>
