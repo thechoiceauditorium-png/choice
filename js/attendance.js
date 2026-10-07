@@ -16,8 +16,8 @@ function getWorkersList() {
   return [];
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  const user = requireAuth();
+document.addEventListener("DOMContentLoaded", async () => {
+  const user = await requireAuth();
   if (!user) return;
 
   renderHeader("attendance");

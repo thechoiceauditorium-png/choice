@@ -7,8 +7,8 @@ import { renderHeader, formatINR, formatDate, formatDateTime, showToast, escapeH
 import { dbStore } from "./firebase-config.js";
 import { evaluateNotifications } from "./notifications.js";
 
-document.addEventListener("DOMContentLoaded", () => {
-  const user = requireAuth();
+document.addEventListener("DOMContentLoaded", async () => {
+  const user = await requireAuth();
   if (!user) return;
 
   renderHeader("dashboard");

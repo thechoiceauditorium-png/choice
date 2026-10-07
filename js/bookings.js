@@ -10,8 +10,8 @@ import { evaluateNotifications } from "./notifications.js";
 let currentCalDate = new Date();
 let currentBookingToPrint = null;
 
-document.addEventListener("DOMContentLoaded", () => {
-  const user = requireAuth();
+document.addEventListener("DOMContentLoaded", async () => {
+  const user = await requireAuth();
   if (!user) return;
 
   renderHeader("bookings");

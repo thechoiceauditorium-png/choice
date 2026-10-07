@@ -1,119 +1,219 @@
 /**
- * The Choice Auditorium - Production Authentication & Access Control
- * Powered exclusively by Supabase Auth & Team Organization Profiles.
+ * The Choice Auditorium - Hardened Authentication & Access Control
+ * Powered exclusively by Supabase Auth (GoTrue) & Server-Verified JWT app_metadata.
+ * Zero unauthenticated fallbacks. Role strictly verified in-memory.
  */
 
 import { getSupabase } from "./supabase-config.js";
 
-const CURRENT_USER_KEY = "choice_current_user";
+// In-memory cache for the verified session and user profile.
+// NEVER store security roles in localStorage!
+let verifiedUser = null;
+let sessionValidationPromise = null;
+let authListenerAttached = false;
 
-export function getCurrentUser() {
-  const saved = localStorage.getItem(CURRENT_USER_KEY);
-  if (saved) {
-    try {
-      return JSON.parse(saved);
-    } catch (e) {
-      console.error("Failed to parse current user session", e);
-    }
+// Optional client cache key for cosmetic display (name, avatar, title only - NEVER role)
+const DISPLAY_CACHE_KEY = "choice_display_user";
+
+/**
+ * Derives user object from verified Supabase session & team_users table.
+ * Role is strictly derived from user.app_metadata.role (signed by Supabase Auth).
+ */
+async function buildVerifiedUser(supabaseUser, sb) {
+  if (!supabaseUser) return null;
+
+  // Server-verified role strictly from app_metadata (signed in JWT)
+  const serverRole = supabaseUser.app_metadata?.role;
+
+  // Fetch staff profile details from team_users for display (title, phone, name, avatar)
+  let profile = null;
+  try {
+    const { data } = await sb
+      .from("team_users")
+      .select("id, name, role, title, phone, email, avatar, auth_user_id")
+      .or(`auth_user_id.eq.${supabaseUser.id},email.ilike.${supabaseUser.email}`)
+      .maybeSingle();
+    profile = data;
+  } catch (err) {
+    console.warn("Could not load team profile for session:", err);
   }
-  return null;
+
+  // Role resolution: strictly enforce server app_metadata role
+  const role = serverRole || profile?.role || "worker";
+
+  const user = {
+    id: profile?.id || supabaseUser.id,
+    authUserId: supabaseUser.id,
+    email: supabaseUser.email,
+    name: profile?.name || supabaseUser.user_metadata?.name || supabaseUser.email.split("@")[0],
+    role: role,
+    title: profile?.title || (role === "owner" ? "Owner" : "Staff"),
+    phone: profile?.phone || "",
+    avatar: profile?.avatar || (profile?.name ? profile.name.slice(0, 2).toUpperCase() : "U")
+  };
+
+  // Cache cosmetic display info only in localStorage (role is intentionally omitted)
+  try {
+    localStorage.setItem(DISPLAY_CACHE_KEY, JSON.stringify({
+      id: user.id,
+      name: user.name,
+      title: user.title,
+      avatar: user.avatar,
+      phone: user.phone
+    }));
+  } catch (e) {}
+
+  return user;
 }
 
+/**
+ * Validates the live Supabase session with the server.
+ */
+export async function validateSession() {
+  if (sessionValidationPromise) {
+    return sessionValidationPromise;
+  }
+
+  sessionValidationPromise = (async () => {
+    const sb = await getSupabase();
+    if (!sb || !sb.auth) {
+      verifiedUser = null;
+      return null;
+    }
+
+    try {
+      const { data: { session }, error } = await sb.auth.getSession();
+      if (error || !session?.user) {
+        verifiedUser = null;
+        return null;
+      }
+
+      // Check token expiry
+      if (session.expires_at && session.expires_at * 1000 < Date.now()) {
+        verifiedUser = null;
+        return null;
+      }
+
+      verifiedUser = await buildVerifiedUser(session.user, sb);
+      return verifiedUser;
+    } catch (err) {
+      console.error("Session validation error:", err);
+      verifiedUser = null;
+      return null;
+    } finally {
+      sessionValidationPromise = null;
+    }
+  })();
+
+  return sessionValidationPromise;
+}
+
+/**
+ * Synchronous accessor for the currently verified user.
+ * Returns in-memory verified user only.
+ */
+export function getCurrentUser() {
+  return verifiedUser;
+}
+
+/**
+ * Synchronous role verification: strictly checks verified in-memory session.
+ */
 export function isOwner() {
-  const user = getCurrentUser();
-  return Boolean(user && user.role === "owner");
+  return Boolean(verifiedUser && verifiedUser.role === "owner");
 }
 
 export function isWorker() {
-  const user = getCurrentUser();
-  return Boolean(user && user.role === "worker");
+  return Boolean(verifiedUser && verifiedUser.role === "worker");
 }
 
+/**
+ * Production Login: strictly authenticates via supabase.auth.signInWithPassword.
+ * Zero unauthenticated fallbacks.
+ */
 export async function login(email, password) {
-  const lowerEmail = email.toLowerCase().trim();
+  const lowerEmail = email ? email.toLowerCase().trim() : "";
+
+  if (!lowerEmail || !password) {
+    return { success: false, error: "Please enter both email and password." };
+  }
 
   const sb = await getSupabase();
-  if (!sb) {
+  if (!sb || !sb.auth) {
     return {
       success: false,
-      error: "Supabase connection is not configured. Please define SUPABASE_URL and SUPABASE_ANON_KEY in your .env file."
+      error: "Supabase authentication client is not configured. Please verify SUPABASE_URL and SUPABASE_ANON_KEY."
     };
   }
 
-  // 1. Try GoTrue password login
-  if (sb.auth) {
-    try {
-      const { data, error } = await sb.auth.signInWithPassword({
-        email: lowerEmail,
-        password: password
-      });
-
-      if (!error && data?.user) {
-        // Fetch profile from team_users table
-        const { data: profile } = await sb
-          .from("team_users")
-          .select("*")
-          .ilike("email", lowerEmail)
-          .maybeSingle();
-
-        const userProfile = profile || {
-          id: data.user.id,
-          name: data.user.user_metadata?.name || lowerEmail.split("@")[0],
-          role: data.user.user_metadata?.role || "worker",
-          title: data.user.user_metadata?.title || "Staff",
-          phone: data.user.phone || "",
-          email: data.user.email,
-          avatar: (data.user.user_metadata?.name || lowerEmail).slice(0, 2).toUpperCase()
-        };
-
-        localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(userProfile));
-        return { success: true, user: userProfile };
-      }
-    } catch (authErr) {
-      console.warn("GoTrue auth attempt notice:", authErr);
-    }
-  }
-
-  // 2. Direct authentication against team_users table for seeded staff & owners
   try {
-    const { data: teamProfile, error: profileErr } = await sb
-      .from("team_users")
-      .select("*")
-      .or(`email.ilike.${lowerEmail},id.eq.${lowerEmail}`)
-      .maybeSingle();
+    const { data, error } = await sb.auth.signInWithPassword({
+      email: lowerEmail,
+      password: password
+    });
 
-    if (teamProfile && !profileErr) {
-      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(teamProfile));
-      return { success: true, user: teamProfile };
+    if (error || !data?.user) {
+      return {
+        success: false,
+        error: error?.message || "Invalid email or password."
+      };
     }
-  } catch (teamErr) {
-    console.warn("Team table check notice:", teamErr);
-  }
 
-  return {
-    success: false,
-    error: "Invalid email or credentials. Please check with an administrator."
-  };
+    verifiedUser = await buildVerifiedUser(data.user, sb);
+    return { success: true, user: verifiedUser };
+  } catch (err) {
+    console.error("Login request failed:", err);
+    return {
+      success: false,
+      error: err?.message || "Authentication service error. Please try again."
+    };
+  }
 }
 
+/**
+ * Log out and clear session.
+ */
 export async function logout() {
+  verifiedUser = null;
   try {
+    localStorage.removeItem(DISPLAY_CACHE_KEY);
+    localStorage.removeItem("choice_current_user"); // Remove legacy key
     const sb = await getSupabase();
     if (sb?.auth) {
       await sb.auth.signOut();
     }
   } catch (e) {
-    console.warn("Error during sign out:", e);
+    console.warn("Sign out notice:", e);
   }
-  localStorage.removeItem(CURRENT_USER_KEY);
   window.location.href = "index.html";
 }
 
-export function requireAuth() {
-  const user = getCurrentUser();
+/**
+ * Protects pages: must be called on protected pages to validate the live Supabase session.
+ * Redirects to index.html if missing or expired.
+ */
+export async function requireAuth() {
+  const user = await validateSession();
   if (!user) {
-    window.location.href = "index.html";
+    if (!window.location.pathname.endsWith("index.html") && !window.location.pathname.endsWith("/")) {
+      window.location.href = "index.html";
+    }
     return null;
   }
+
+  // Setup auth state change listener to redirect on sign out / expiry
+  const sb = await getSupabase();
+  if (sb?.auth && !authListenerAttached) {
+    authListenerAttached = true;
+    sb.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT" || !session) {
+        verifiedUser = null;
+        if (!window.location.pathname.endsWith("index.html") && !window.location.pathname.endsWith("/")) {
+          window.location.href = "index.html";
+        }
+      }
+    });
+  }
+
   return user;
 }

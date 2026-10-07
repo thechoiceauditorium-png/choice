@@ -8,8 +8,8 @@ import { renderHeader, formatDate, formatDateTime, formatINR, showToast, openMod
 import { dbStore } from "./firebase-config.js";
 import { evaluateNotifications } from "./notifications.js";
 
-document.addEventListener("DOMContentLoaded", () => {
-  const user = requireAuth();
+document.addEventListener("DOMContentLoaded", async () => {
+  const user = await requireAuth();
   if (!user) return;
 
   renderHeader("compliance");
@@ -257,7 +257,7 @@ function renderComplianceHistory() {
       <td><strong>${formatDate(h.completedDate)}</strong></td>
       <td><div style="font-weight: 700;">${escapeHtml(h.title || '')}</div></td>
       <td style="font-size: 0.82rem; color: #666;">${escapeHtml(h.cycle || '—')}</td>
-      <td style="font-size: 0.85rem; font-weight: 600;">${escapeHtml(h.completedBy || 'Elby Abin')}</td>
+      <td style="font-size: 0.85rem; font-weight: 600;">${escapeHtml(h.completedBy || 'Staff')}</td>
       <td style="font-family: monospace; font-size: 0.82rem; color: #444;">${escapeHtml(h.refNo || '—')}</td>
       <td style="font-weight: 600; color: ${h.amountPaid > 0 ? '#2E7D32' : '#888'};">
         ${h.amountPaid > 0 ? formatINR(h.amountPaid) : '—'}
@@ -272,13 +272,14 @@ function openComplianceModal(item = null) {
   form.reset();
 
   const titleEl = document.getElementById("comp-modal-title");
+  const defaultResp = getCurrentUser()?.name || "Management";
   if (item) {
     titleEl.textContent = "Edit Statutory Obligation";
     document.getElementById("comp-id").value = item.id;
     document.getElementById("comp-title").value = item.title;
     document.getElementById("comp-recurrence").value = item.recurrence || "Annual";
     document.getElementById("comp-due-date").value = item.dueDate || "";
-    document.getElementById("comp-responsible").value = item.responsible || "Elby Abin";
+    document.getElementById("comp-responsible").value = item.responsible || defaultResp;
     document.getElementById("comp-lead").value = item.leadDays || 15;
     document.getElementById("comp-notes").value = item.notes || "";
   } else {

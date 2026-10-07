@@ -60,14 +60,17 @@ export function evaluateNotifications() {
   // 3. Attendance check for today (if after 4 PM and not marked)
   const hour = new Date().getHours();
   if (hour >= 16 && isOwner()) {
+    const workers = (dbStore.get("users") || []).filter(u => u.role === "worker");
     const todayAttendance = attendance.filter(a => a.date === todayStr);
-    if (todayAttendance.length < 2) {
+    const unmarkedWorkers = workers.filter(w => !todayAttendance.some(a => a.workerId === w.id));
+    if (unmarkedWorkers.length > 0) {
       const key = `notif-att-${todayStr}`;
       if (!newNotifs.some(n => n.id === key)) {
+        const workerNames = unmarkedWorkers.map(w => w.name).join(" / ");
         newNotifs.unshift({
           id: key,
           title: "Attendance Unmarked",
-          message: "Staff attendance for Gopinathan / Sajitha is not fully recorded for today.",
+          message: `Staff attendance for ${workerNames} is not fully recorded for today.`,
           type: "attendance",
           time: "Daily reminder",
           read: false
