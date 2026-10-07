@@ -1,12 +1,12 @@
 -- ==============================================================================
 -- Migration 003: Database Integrity, Exclusion Constraints, Audit Logging & Views
 -- The Choice Auditorium Platform
+-- Wrapped in a single atomic transaction with safe dependency management.
 -- ==============================================================================
 
 -- ------------------------------------------------------------------------------
--- PRE-MIGRATION DRY-RUN QUERIES (Run these FIRST before running the migration)
+-- PRE-MIGRATION DRY-RUN QUERIES (Run these in SQL Editor before executing migration)
 -- ------------------------------------------------------------------------------
-
 /*
 -- 1. Check for rows that would fail conversion to timestamp without time zone:
 select id, "bookingNo", "fromDateTime", "toDateTime", status
@@ -18,7 +18,7 @@ where
   or "toDateTime" !~ '^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}'
   or ("fromDateTime"::timestamp >= "toDateTime"::timestamp);
 
--- 2. Check for existing overlapping Confirmed bookings that would block the exclusion constraint:
+-- 2. Check for existing overlapping Confirmed bookings that would block exclusion constraint:
 select
   b1.id as booking_1_id, b1."bookingNo" as b1_no, b1."fromDateTime" as b1_from, b1."toDateTime" as b1_to,
   b2.id as booking_2_id, b2."bookingNo" as b2_no, b2."fromDateTime" as b2_from, b2."toDateTime" as b2_to
@@ -38,6 +38,7 @@ where "totalAmount"::text ~ '\.\d{3,}$' or "grandTotal"::text ~ '\.\d{3,}$';
 select id, date, amount from public.ledger where amount::text ~ '\.\d{3,}$';
 */
 
+begin;
 
 -- ==============================================================================
 -- 1. EXTENSIONS
@@ -46,7 +47,14 @@ create extension if not exists btree_gist;
 
 
 -- ==============================================================================
--- 2. ALTER COLUMN TYPES TO EXACT DOMAINS
+-- 2. DROP DEPENDENT VIEWS PRIOR TO COLUMN ALTERATIONS
+-- ==============================================================================
+drop view if exists public.booking_financial_summary cascade;
+drop view if exists public.active_ledger cascade;
+
+
+-- ==============================================================================
+-- 3. ALTER COLUMN TYPES TO EXACT DOMAINS
 -- ==============================================================================
 
 -- Bookings date/time conversion to timestamp without time zone (local IST)
@@ -72,7 +80,7 @@ alter table public.compliance_history
 
 
 -- ==============================================================================
--- 3. CHECK CONSTRAINTS FOR FINANCIAL & TEMPORAL INTEGRITY
+-- 4. CHECK CONSTRAINTS FOR FINANCIAL & TEMPORAL INTEGRITY
 -- ==============================================================================
 
 -- Bookings: toDateTime must be strictly after fromDateTime
@@ -103,10 +111,10 @@ alter table public.compliance_history add constraint chk_compliance_amount_non_n
 
 
 -- ==============================================================================
--- 4. DOUBLE-BOOKING EXCLUSION CONSTRAINT (POSTGRESQL BTREE_GIST)
+-- 5. DOUBLE-BOOKING EXCLUSION CONSTRAINT (POSTGRESQL BTREE_GIST)
 -- ==============================================================================
 
--- Enforces half-open interval '[)' so 10:00 end and 10:00 start do not conflict
+-- Half-open interval '[)' ensures 10:00 end and 10:00 start do not conflict
 alter table public.bookings drop constraint if exists no_overlapping_confirmed_bookings;
 alter table public.bookings add constraint no_overlapping_confirmed_bookings
   exclude using gist (
@@ -122,7 +130,7 @@ alter table public.bookings add constraint no_overlapping_confirmed_bookings
 
 
 -- ==============================================================================
--- 5. SOFT DELETE FOR LEDGER
+-- 6. SOFT DELETE FOR LEDGER & ACTIVE_LEDGER VIEW
 -- ==============================================================================
 
 alter table public.ledger
@@ -130,20 +138,26 @@ alter table public.ledger
 
 create index if not exists idx_ledger_deleted_at on public.ledger (deleted_at);
 
--- Active ledger view (excludes soft-deleted entries)
+-- Active ledger view (excludes soft-deleted rows)
 create or replace view public.active_ledger as
-  select * from public.ledger where deleted_at is null;
+  select
+    id, date, type, category, amount, description,
+    "loggedBy", "bookingId", "createdAt", deleted_at
+  from public.ledger
+  where deleted_at is null;
+
+grant select on public.active_ledger to authenticated;
 
 
 -- ==============================================================================
--- 6. IMMUTABLE AUDIT LOG & TRIGGERS
+-- 7. IMMUTABLE AUDIT LOG & TRIGGER (SECURITY DEFINER + FIXED SEARCH_PATH)
 -- ==============================================================================
 
 create table if not exists public.audit_log (
   id bigint generated always as identity primary key,
   table_name text not null,
   row_id text not null,
-  action text not null check (action in ('INSERT', 'UPDATE', 'DELETE')),
+  action text not null check (action in ('INSERT', 'UPDATE', 'DELETE', 'SOFT_DELETE')),
   old_data jsonb,
   new_data jsonb,
   actor uuid default auth.uid(),
@@ -155,21 +169,24 @@ create index if not exists idx_audit_log_at on public.audit_log (at);
 
 alter table public.audit_log enable row level security;
 
+-- Audit log access: SELECT only for owner. ZERO update/delete policies for anyone.
 drop policy if exists "audit_log_select_owner" on public.audit_log;
 create policy "audit_log_select_owner" on public.audit_log
   for select to authenticated
   using (public.is_owner());
 
--- Generic Audit Trigger Function
+-- Generic Audit Trigger Function with secure search_path
 create or replace function public.fn_audit_log_trigger()
 returns trigger
 language plpgsql
 security definer
+set search_path = public, pg_temp
 as $$
 declare
   v_row_id text;
   v_old jsonb := null;
   v_new jsonb := null;
+  v_action text := tg_op;
 begin
   if (tg_op = 'DELETE') then
     v_row_id := coalesce(old.id::text, '');
@@ -178,13 +195,17 @@ begin
     v_row_id := coalesce(new.id::text, '');
     v_old := to_jsonb(old);
     v_new := to_jsonb(new);
+    -- Specially annotate soft deletes in audit log action
+    if (old.deleted_at is null and new.deleted_at is not null) then
+      v_action := 'SOFT_DELETE';
+    end if;
   elsif (tg_op = 'INSERT') then
     v_row_id := coalesce(new.id::text, '');
     v_new := to_jsonb(new);
   end if;
 
   insert into public.audit_log (table_name, row_id, action, old_data, new_data, actor, at)
-  values (tg_table_name, v_row_id, tg_op, v_old, v_new, auth.uid(), now());
+  values (tg_table_name, v_row_id, v_action, v_old, v_new, auth.uid(), now());
 
   if (tg_op = 'DELETE') then
     return old;
@@ -222,13 +243,14 @@ create trigger trg_audit_team_users
 
 
 -- ==============================================================================
--- 7. SERVER-SIDE TIMESTAMP OVERWRITE TRIGGERS
+-- 8. SERVER-SIDE TIMESTAMP OVERWRITE TRIGGERS
 -- ==============================================================================
 
 create or replace function public.fn_enforce_server_timestamps()
 returns trigger
 language plpgsql
 security definer
+set search_path = public, pg_temp
 as $$
 begin
   if tg_op = 'INSERT' then
@@ -252,7 +274,7 @@ create trigger trg_attendance_server_timestamps
 
 
 -- ==============================================================================
--- 8. DERIVED BALANCE & FINANCIAL RECONCILIATION VIEW
+-- 9. DERIVED BALANCE & FINANCIAL RECONCILIATION VIEW
 -- ==============================================================================
 
 create or replace view public.booking_financial_summary as
@@ -275,3 +297,7 @@ select
 from public.bookings b
 left join public.ledger l on l."bookingId" = b.id
 group by b.id;
+
+grant select on public.booking_financial_summary to authenticated;
+
+commit;

@@ -49,7 +49,7 @@ export const TABLE_COLUMNS = {
   ],
   ledger: [
     "id", "date", "type", "category", "amount", "description",
-    "loggedBy", "bookingId", "createdAt"
+    "loggedBy", "bookingId", "createdAt", "deleted_at"
   ],
   compliance: [
     "id", "title", "cycle", "dueDate", "recurrence", "status",
@@ -274,7 +274,8 @@ class ChoiceDataStore {
 
     for (const col of collections) {
       try {
-        const { data, error } = await sb.from(col).select("*");
+        const queryTable = col === "ledger" ? "active_ledger" : col;
+        const { data, error } = await sb.from(queryTable).select("*");
         if (!error && Array.isArray(data)) {
           localStorage.setItem(`choice_${col}`, JSON.stringify(data));
           this.notifySubscribers(col);
@@ -345,6 +346,9 @@ class ChoiceDataStore {
     if (!Array.isArray(items)) items = [];
 
     if (eventType === "INSERT") {
+      if (collectionName === "ledger" && newRecord.deleted_at) {
+        return;
+      }
       const idx = items.findIndex(i => i.id === newRecord.id);
       if (idx === -1) {
         items.unshift(newRecord);
@@ -352,11 +356,15 @@ class ChoiceDataStore {
         items[idx] = newRecord;
       }
     } else if (eventType === "UPDATE") {
-      const idx = items.findIndex(i => i.id === newRecord.id);
-      if (idx !== -1) {
-        items[idx] = newRecord;
+      if (collectionName === "ledger" && newRecord.deleted_at) {
+        items = items.filter(i => i.id !== newRecord.id);
       } else {
-        items.unshift(newRecord);
+        const idx = items.findIndex(i => i.id === newRecord.id);
+        if (idx !== -1) {
+          items[idx] = newRecord;
+        } else {
+          items.unshift(newRecord);
+        }
       }
     } else if (eventType === "DELETE") {
       items = items.filter(i => i.id !== oldRecord.id);
@@ -370,7 +378,11 @@ class ChoiceDataStore {
     const data = localStorage.getItem(`choice_${collectionName}`);
     if (!data) return [];
     try {
-      return JSON.parse(data);
+      const items = JSON.parse(data);
+      if (collectionName === "ledger" && Array.isArray(items)) {
+        return items.filter(i => !i.deleted_at);
+      }
+      return items;
     } catch (e) {
       return [];
     }
@@ -417,8 +429,22 @@ class ChoiceDataStore {
           sb.from(tableName).upsert([sanitized]).then(({ error }) => {
             if (error) {
               console.warn(`Supabase add error on ${collectionName}:`, error);
-              if (error.code === "23P01" || error.message?.includes("no_overlapping_confirmed_bookings")) {
-                window.dispatchEvent(new CustomEvent("choice:booking-conflict", { detail: { message: "This slot was just booked by someone else. Please choose a different time slot." } }));
+              const isConflict = Boolean(
+                error && (
+                  error.code === "23P01" ||
+                  (error.message && error.message.includes("no_overlapping_confirmed_bookings")) ||
+                  (error.details && error.details.includes("no_overlapping_confirmed_bookings")) ||
+                  (error.message && error.message.includes("exclusion constraint"))
+                )
+              );
+              if (isConflict) {
+                if (collectionName === "bookings") {
+                  const currentItems = this.get(collectionName).filter(i => i.id !== item.id);
+                  this.save(collectionName, currentItems, false);
+                }
+                window.dispatchEvent(new CustomEvent("choice:booking-conflict", {
+                  detail: { message: "This slot was just booked by someone else. Please choose a different time slot." }
+                }));
               }
             }
           });
@@ -430,10 +456,15 @@ class ChoiceDataStore {
   }
 
   update(collectionName, id, updates) {
-    const items = this.get(collectionName);
+    const rawData = localStorage.getItem(`choice_${collectionName}`);
+    let items = rawData ? JSON.parse(rawData) : [];
     const index = items.findIndex(i => i.id === id);
     if (index !== -1) {
+      const originalRecord = { ...items[index] };
       items[index] = { ...items[index], ...updates };
+      if (collectionName === "ledger" && updates.deleted_at) {
+        items = items.filter(i => i.id !== id);
+      }
       this.save(collectionName, items, false);
 
       // Sync individual update to Supabase
@@ -445,8 +476,24 @@ class ChoiceDataStore {
             sb.from(tableName).update(sanitized).eq("id", id).then(({ error }) => {
               if (error) {
                 console.warn(`Supabase update error on ${collectionName}:`, error);
-                if (error.code === "23P01" || error.message?.includes("no_overlapping_confirmed_bookings")) {
-                  window.dispatchEvent(new CustomEvent("choice:booking-conflict", { detail: { message: "This slot was just booked by someone else. Please choose a different time slot." } }));
+                const isConflict = Boolean(
+                  error && (
+                    error.code === "23P01" ||
+                    (error.message && error.message.includes("no_overlapping_confirmed_bookings")) ||
+                    (error.details && error.details.includes("no_overlapping_confirmed_bookings")) ||
+                    (error.message && error.message.includes("exclusion constraint"))
+                  )
+                );
+                if (isConflict) {
+                  const revertItems = this.get(collectionName);
+                  const revIdx = revertItems.findIndex(i => i.id === id);
+                  if (revIdx !== -1) {
+                    revertItems[revIdx] = originalRecord;
+                    this.save(collectionName, revertItems, false);
+                  }
+                  window.dispatchEvent(new CustomEvent("choice:booking-conflict", {
+                    detail: { message: "This slot was just booked by someone else. Please choose a different time slot." }
+                  }));
                 }
               }
             });
@@ -460,6 +507,10 @@ class ChoiceDataStore {
   }
 
   delete(collectionName, id) {
+    if (collectionName === "ledger") {
+      const deletedAt = new Date().toISOString();
+      return this.update("ledger", id, { deleted_at: deletedAt });
+    }
     const items = this.get(collectionName);
     const filtered = items.filter(i => i.id !== id);
     this.save(collectionName, filtered, false);
