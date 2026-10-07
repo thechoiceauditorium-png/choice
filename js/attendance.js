@@ -11,13 +11,9 @@ import { evaluateNotifications } from "./notifications.js";
 function getWorkersList() {
   const users = dbStore.get("users");
   if (Array.isArray(users)) {
-    const list = users.filter(u => u.role === "worker");
-    if (list.length > 0) return list;
+    return users.filter(u => u.role === "worker");
   }
-  return [
-    { id: "gopinathan", name: "Gopinathan P", title: "Manager", phone: "8848649672" },
-    { id: "sajitha", name: "Sajitha", title: "Assistant", phone: "8848614356" }
-  ];
+  return [];
 }
 
 document.addEventListener("DOMContentLoaded", () => {

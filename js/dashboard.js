@@ -124,20 +124,19 @@ function renderAttendanceWidget(attendance = []) {
   const widget = document.getElementById("today-attendance-widget");
   if (!widget) return;
 
-  const todayStr = new Date().toISOString().split("T")[0];
   const users = dbStore.get("users");
-  const allWorkers = Array.isArray(users) && users.filter(u => u.role === "worker").length > 0
-    ? users.filter(u => u.role === "worker")
-    : [
-        { id: "gopinathan", name: "Gopinathan P", title: "Manager", phone: "8848649672" },
-        { id: "sajitha", name: "Sajitha", title: "Assistant", phone: "8848614356" }
-      ];
+  const allWorkers = Array.isArray(users) ? users.filter(u => u.role === "worker") : [];
 
   const userIsOwner = isOwner();
   const currentUser = getCurrentUser();
   const workers = currentUser && currentUser.role === "worker"
     ? allWorkers.filter(w => w.id === currentUser.id)
     : allWorkers;
+
+  if (workers.length === 0) {
+    widget.innerHTML = `<div style="padding: 1rem; text-align: center; color: var(--muted); font-size: 0.85rem;">No staff records found.</div>`;
+    return;
+  }
 
   // Expose quick approve helper
   window.choiceDashboardApproveAtt = (recordId, workerName) => {

@@ -79,17 +79,6 @@
       <div class="login-body">
         <form id="login-form">
           <div class="form-group">
-            <label class="form-label" for="quick-team-select">Authorized Team Member</label>
-            <select id="quick-team-select" class="form-control" style="font-size: 0.85rem; margin-bottom: 0.5rem;">
-              <option value="">-- Select Member or Type Email Below --</option>
-              <option value="elbymathew20@gmail.com">Elby Abin (CEO / Owner)</option>
-              <option value="abin@choiceauditorium.com">Abin Varghese K (Director / Owner)</option>
-              <option value="vibinkgl@gmail.com">Vibin Varghese K (Director / Owner)</option>
-              <option value="gopinathan@choiceauditorium.com">Gopinathan P (Manager / Worker)</option>
-              <option value="sajitha@choiceauditorium.com">Sajitha (Assistant / Worker)</option>
-            </select>
-          </div>
-          <div class="form-group">
             <label class="form-label" for="login-email">Email Address</label>
             <input type="email" id="login-email" class="form-control" placeholder="name@choiceauditorium.com" required>
           </div>
@@ -110,13 +99,6 @@
   <script type="module">
     import { login } from "./js/auth.js";
     import { showToast } from "./js/common.js";
-
-    document.getElementById("quick-team-select")?.addEventListener("change", (e) => {
-      if (e.target.value) {
-        document.getElementById("login-email").value = e.target.value;
-        document.getElementById("login-password").value = "choice123";
-      }
-    });
 
     document.getElementById("login-form").addEventListener("submit", async (e) => {
       e.preventDefault();
