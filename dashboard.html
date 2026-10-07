@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Operations Dashboard | The Choice Auditorium</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/supabase.min.js"></script>
+</head>
+<body>
+  <div id="header-mount"></div>
+
+  <main class="main-container">
+    <div class="page-header">
+      <div class="page-title">
+        <h2>Auditorium Operations Dashboard</h2>
+        <span class="page-title-badge" id="current-date-badge"></span>
+      </div>
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="bookings.html?action=new" class="btn btn-primary btn-sm">+ New Booking</a>
+        <a href="ledger.html?action=new" class="btn btn-secondary btn-sm">Log Expense</a>
+        <a href="attendance.html" class="btn btn-secondary btn-sm" id="btn-quick-att">Attendance</a>
+      </div>
+    </div>
+
+    <!-- KPI Summary Grid -->
+    <div class="stats-grid" id="kpi-grid">
+      <!-- Injected by js/dashboard.js -->
+    </div>
+
+    <!-- Main Grid Content: Bookings & Operations -->
+    <div style="display: grid; grid-template-columns: 2fr 1.2fr; gap: 1.5rem; align-items: start;">
+      <!-- Left Column: Upcoming Functions & Booking Schedule -->
+      <div>
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Upcoming Functions (Next 30 Days)</h3>
+            <a href="bookings.html" class="btn btn-outline btn-sm">View Full Calendar</a>
+          </div>
+          <div class="card-body" style="padding: 0;">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Booking #</th>
+                    <th>Date & Time</th>
+                    <th>Client / Event</th>
+                    <th>Contact</th>
+                    <th>Status</th>
+                    <th>Financials</th>
+                  </tr>
+                </thead>
+                <tbody id="upcoming-bookings-tbody">
+                  <!-- Injected via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Monthly Financial Snapshot (Full view for Owners) -->
+        <div class="card" id="financial-snapshot-card">
+          <div class="card-header">
+            <h3 class="card-title">Monthly Financial Snapshot</h3>
+            <a href="ledger.html" class="btn btn-secondary btn-sm">Ledger Details</a>
+          </div>
+          <div class="card-body">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; text-align: center; margin-bottom: 1.25rem;">
+              <div style="padding: 1rem; background: #E8F5E9; border-radius: var(--radius-sm); border: 1px solid #C8E6C9;">
+                <div style="font-size: 0.8rem; color: #2E7D32; font-weight: bold; text-transform: uppercase;">Total Income (Sept)</div>
+                <div id="stat-month-income" style="font-size: 1.4rem; font-weight: 800; color: #1B5E20; margin-top: 4px;">₹0</div>
+              </div>
+              <div style="padding: 1rem; background: #FFEBEE; border-radius: var(--radius-sm); border: 1px solid #FFCDD2;">
+                <div style="font-size: 0.8rem; color: #C62828; font-weight: bold; text-transform: uppercase;">Total Expenses (Sept)</div>
+                <div id="stat-month-expense" style="font-size: 1.4rem; font-weight: 800; color: #B71C1C; margin-top: 4px;">₹0</div>
+              </div>
+              <div style="padding: 1rem; background: #E3F2FD; border-radius: var(--radius-sm); border: 1px solid #BBDEFB;">
+                <div style="font-size: 0.8rem; color: #1565C0; font-weight: bold; text-transform: uppercase;">Net Balance</div>
+                <div id="stat-month-net" style="font-size: 1.4rem; font-weight: 800; color: #0D47A1; margin-top: 4px;">₹0</div>
+              </div>
+            </div>
+            <div style="font-size: 0.82rem; color: var(--muted);">
+              <span>Real-time sync active across all 5 owner/worker devices.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Checklists, Today's Attendance, Compliance -->
+      <div>
+        <!-- Today's Attendance Card -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Today's Staff Attendance</h3>
+            <a href="attendance.html" class="btn btn-outline btn-sm">Manage</a>
+          </div>
+          <div class="card-body" id="today-attendance-widget">
+            <!-- Injected via JS -->
+          </div>
+        </div>
+
+        <!-- Pending Checklists Card -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Operational Checklists</h3>
+            <a href="checklists.html" class="btn btn-outline btn-sm">All Checklists</a>
+          </div>
+          <div class="card-body" id="checklists-widget" style="padding: 0.75rem 1.25rem;">
+            <!-- Injected via JS -->
+          </div>
+        </div>
+
+        <!-- Statutory Compliance Due Soon -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Compliance Due (Next 30 Days)</h3>
+            <a href="compliance.html" class="btn btn-outline btn-sm">Full Tracker</a>
+          </div>
+          <div class="card-body" id="compliance-widget" style="padding: 0.75rem 1.25rem;">
+            <!-- Injected via JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="toast-mount"></div>
+
+  <script type="module" src="js/dashboard.js"></script>
+</body>
+</html>

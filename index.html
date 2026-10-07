@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login | The Choice Auditorium Operations</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/supabase.min.js"></script>
+  <style>
+    .login-wrapper {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      background: #F4F5F7;
+    }
+    .login-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      max-width: 480px;
+      width: 100%;
+      overflow: hidden;
+    }
+    .login-header {
+      background: #FFFFFF;
+      color: var(--text);
+      padding: 2.2rem 1.75rem 1.75rem 1.75rem;
+      text-align: center;
+      position: relative;
+      border-bottom: 1px solid var(--border);
+    }
+    .login-header .logo-container-choice {
+      max-width: 220px;
+      margin: 0 auto 1.25rem auto;
+      color: var(--brand-red);
+    }
+    .login-header h2 {
+      font-size: 1.25rem;
+      letter-spacing: 0.5px;
+      color: var(--text);
+      text-transform: uppercase;
+      margin-bottom: 0.25rem;
+    }
+    .login-header p {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .login-body {
+      padding: 2.25rem 2rem 2.5rem 2rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-wrapper">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="logo-container-choice">
+          <svg viewBox="0 0 540 280" xmlns="http://www.w3.org/2000/svg" style="width: 100%; height: auto; display: block;">
+            <g fill="currentColor">
+              <!-- Roofline Structure -->
+              <path d="M 50,118 L 196,118 L 270,52 L 344,118 L 490,118 L 490,109 L 348,109 L 270,40 L 192,109 L 50,109 Z" />
+              <path fill-rule="evenodd" d="M 270,68 L 322,114 L 218,114 Z M 270,82 L 238,110 L 302,110 Z" />
+              <path d="M 48,124 Q 270,121 492,124 L 492,128 Q 270,125 48,128 Z" />
+              <!-- CHOICE Wordmark -->
+              <text x="270" y="212" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-weight="900" font-size="94" letter-spacing="4" text-anchor="middle">CHOICE</text>
+              <!-- Bottom underline -->
+              <path d="M 48,242 Q 270,238 492,242 Q 270,250 48,242 Z" />
+            </g>
+          </svg>
+        </div>
+        <h2>The Choice Auditorium</h2>
+        <p>Operations & Management Dashboard</p>
+        <div style="font-size: 0.75rem; margin-top: 4px; color: var(--muted);">Alamaram, Kanjikode, Palakkad — 678621</div>
+      </div>
+
+      <div class="login-body">
+        <form id="login-form">
+          <div class="form-group">
+            <label class="form-label" for="login-email">Email Address</label>
+            <input type="email" id="login-email" class="form-control" placeholder="name@choiceauditorium.com" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="login-password">Password</label>
+            <input type="password" id="login-password" class="form-control" placeholder="••••••••" required>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem; font-weight: 600;">
+            Sign In to Dashboard
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-mount"></div>
+
+  <script type="module">
+    import { login } from "./js/auth.js";
+    import { showToast } from "./js/common.js";
+
+    document.getElementById("login-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("login-email").value.trim();
+      const pwd = document.getElementById("login-password").value;
+      const submitBtn = e.target.querySelector("button[type='submit']");
+      
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Signing In...";
+
+      try {
+        const res = await login(email, pwd);
+        if (res.success) {
+          showToast(`Welcome back, ${res.user.name}!`);
+          setTimeout(() => window.location.href = "dashboard.html", 400);
+        } else {
+          showToast(res.error, "danger");
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Sign In to Dashboard";
+        }
+      } catch (err) {
+        showToast(err.message || "Login failed", "danger");
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Sign In to Dashboard";
+      }
+    });
+  </script>
+</body>
+</html>

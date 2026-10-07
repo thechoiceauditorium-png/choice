@@ -1,0 +1,225 @@
+<USER_REQUEST>
+# Build Prompt: The Choice Auditorium — Operations Dashboard
+
+You are building a complete, production-ready web application for **The Choice Auditorium**, a marriage/event auditorium in Alamaram, Kanjikode, Palakkad, Kerala. Build this end-to-end — all pages, logic, and data layer — using **HTML, CSS, and vanilla JavaScript** as the primary stack.
+
+## 0. Important tech-stack note before you start
+
+Pure HTML/CSS/JS with no backend (e.g. only `localStorage`) will **not** satisfy the core requirement, because the 5 users are in different physical locations (including outside India) and all need to see the *same live data* — bookings, ledger, attendance, notifications must sync in real time across devices. Recommended approach:
+
+- Frontend: HTML + CSS + vanilla JS (no framework), organized as a multi-page or single-page app.
+- Backend/data layer: **Firebase (Firestore + Auth)** — chosen because it needs zero server maintenance, has a generous free tier suitable for this scale (5 users, low volume), and integrates with plain JS via the Firebase Web SDK (`<script type="module">` imports, no build step required). Use Firestore's `onSnapshot` listeners for real-time sync (so a booking added by one owner instantly appears for everyone else — this is what solves the double-booking problem).
+- If Firebase is not acceptable, Supabase (Postgres + Realtime) is the alternative — same reasoning, swap accordingly. Default to Firebase unless told otherwise.
+- Keep all business logic in plain JS modules; do not introduce React/Vue/build tooling.
+
+## 1. Organization & Users (real data — seed these as the initial user set)
+
+| Name | Role | Title | Phone | Email |
+|---|---|---|---|---|
+| Elby Abin | Owner (full access) | CEO | 8156810083 | elbymathew20@gmail.com |
+| Abin Varghese K | Owner (full access) | Director | 9895058282 | — |
+| Vibin Varghese K | Owner (full access) | Director | 9447600791 | vibinkgl@gmail.com |
+| Gopinathan P | Worker (operational access) | Manager | 8848649672 | — |
+| Sajitha | Worker (operational access) | Assistant | 8848614356 | — |
+
+Roles:
+- **Owner** — sees everything: bookings, full financial ledger, attendance records, compliance tracker, all notifications. Can edit/delete anything.
+- **Worker** — can create/edit bookings, mark attendance (their own), log day-to-day expense entries, view (not necessarily edit) the compliance tracker, and receive notifications relevant to their tasks and the function checklists below.
+
+Auth: simple email + password login via Firebase Auth, one account per person above. No public signup — accounts are pre-created/invited by an admin (Elby).
+
+## 2. Module: Booking Calendar (core module — solves the double-booking problem)
+
+Build a shared calendar (month view + list view) where every booking is visible to all 5 users in real time.
+
+**Booking form fields** (mirror the auditorium's existing paper "Booking Receipt" exactly, so it feels familiar and can be printed/exported to match):
+- Booking No. (auto-incrementing, continue from their current paper series if they tell you the last number used)
+- Customer Name
+- Address
+- Phone numbers — **two fields** (they always take two contact numbers)
+- Reference (if any) — free text, who referred the client
+- Reservation Date, From (date+time), To (date+time)
+- Event description (e.g. wedding, reception, engagement)
+- Line items with Advance (Rs.) and Amount (Rs.) columns for each:
+  1. Rent
+  2. Hire Charges — sub-items: (a) Furniture (b) Cooking utensils
+  3. Generator Charge
+  4. Service Charge
+  5. Miscellaneous
+  6. Electricity charges for photography (if any)
+- Total, Service Tax, Grand Total, Advance Received, Balance (auto-calculated from the line items)
+- "Balance to be paid on or before" date
+- Customer signature (capture as a signature pad / image upload for digital record, or leave blank for print-and-sign)
+- Booking status: Enquiry → Confirmed → Completed → Cancelled
+
+**Conflict detection (critical requirement):**
+- When a new booking is being created or an existing one edited, check for date/time overlap against all existing Confirmed bookings.
+- If an overlap is detected, block save and show a clear warning naming the conflicting booking (customer name + existing dates) — do not allow two Confirmed bookings to silently coexist on overlapping dates.
+- Enquiry-stage bookings can overlap (multiple enquiries for the same date are normal) but should be visually flagged once more than one exists for a date, so staff know to confirm quickly before someone else does.
+
+**Printable receipt:** provide a "Print / Export" button on each booking that renders it back into the same layout as their paper Booking Receipt (for continuity with their existing paperwork and any customers who want a physical copy).
+
+## 3. Module: Books — Income & Expense Ledger
+
+Build a ledger with entries dated, categorized, amount, short description, and who logged it. Use the auditorium's own real category list (from their existing recurring-expense notes) as the default dropdown — don't invent generic categories:
+
+**Income categories:**
+- Hall rent (advance)
+- Hall rent (balance)
+- Commission
+- Donations
+- Others
+
+**Expense categories:**
+- Wages
+- Allowance
+- Broadband bill
+- Mobile recharge
+- Diesel charges
+- Electricity bill
+- Water charges
+- Harithakarmasena (waste management)
+- Panchayath tax — track as **two half-yearly cycles**: October–March and April–September
+- Revenue tax
+- Professional tax
+- Cleaning charges
+- Electrical charges
+- Plumbing charges
+- Electrical Directorate renewal fees
+- Fire and Safety licence fees
+- Maintenance (with a required free-text description field — they specifically track what the maintenance was for)
+- GST (if applicable)
+- UPI charges
+- Bank loan (EMI/payment)
+- Fire and theft insurance
+- New asset purchases
+- Cash in hand (running balance / reconciliation entry)
+- Others
+
+Every ledger entry should optionally link back to a specific booking (for hall-rent income tied to a customer) or stand alone (for recurring operational expenses).
+
+Provide a monthly summary (total income, total expenses, net) and a simple export (PDF/Excel) for the owners' reference or their accountant.
+
+**Printable vouchers:** provide print layouts matching their existing paper forms:
+- **Cash Voucher** — No., Date, Rs., Paid to, Debit, Particulars, Rupees (in words), A/C, Rs., P., Total, Authorised by, Passed by, Paid Cash/Cheque drawn on, Cheque No., Date, Receiver's Signature.
+- **Cash Receipt** — No., Date, Received with thanks From ___, Rupees ___, towards ___, by Cash/Cheque/Transfer, Amount box, Signature of Recipient. (Header pre-filled with THE CHOICE AUDITORIUM, Alamaram, Kanjikode, Pin - 678621, phone numbers, website, email.)
+
+## 4. Module: Attendance
+
+- Daily present/absent/half-day marking for Gopinathan (Manager) and Sajitha (Assistant), marked by an Owner (not self-marked by the workers).
+- Simple day view per worker with a Present/Absent/Half-day selector and an optional note; owner can go back and edit past entries if needed, logged with who made the edit and when.
+- Monthly attendance summary per worker, visible to all owners.
+
+## 5. Module: Function Checklists (new requirement, found in their existing paper checklists — include this)
+
+The client already runs three recurring paper checklists. Digitize all three as structured, repeatable checklists with a **Sl. No. / Signed By / Verified By** structure (matching their paper format), so each list item can be checked off by the responsible worker and verified by an owner/manager:
+
+1. **Before-Function Checklist** — 14 items to complete before every function. Attach this checklist automatically whenever a booking's event date arrives (or the day before), and require the assigned worker to check items off.
+2. **After-Function Checklist** — 16 items to complete after every function. Auto-attach after the event's "To" date/time passes.
+3. **Every-15-Days Checklist** — 17 items for routine periodic maintenance/checks, independent of bookings. Auto-generate a fresh instance every 15 days and notify the responsible worker.
+
+Since the actual item text in the source PDFs is blank (blank template forms), build the checklist **items as an editable, numbered list per checklist type** that Elby/owners can fill in once during setup (leave item text empty/placeholder initially, editable from an admin screen) — don't hardcode guessed content. Each item row needs: item description, a checkbox/status, "Signed by" (worker), "Verified by" (owner/manager), and a timestamp.
+
+## 6. Module: In-App Notifications
+
+Build a notification center (bell icon, list of notifications, mark-as-read) covering:
+- New booking created / edited / cancelled
+- Booking conflict attempted
+- Before-Function checklist due (day before event)
+- After-Function checklist pending (after event ends)
+- Every-15-Days checklist generated
+- Attendance not marked for the day (evening reminder to the responsible owner)
+- Compliance item due soon (see Module 7)
+
+Target notifications to the right roles (workers get task-type alerts; owners get everything plus financial/compliance summaries).
+
+## 7. Module: Compliance & Recurring Filings Tracker
+
+Track statutory/recurring obligations with due dates, status, and responsible person. Seed with the items the client already tracks (these are real, not generic placeholders):
+
+- GST return (if applicable)
+- Panchayath tax — October–March cycle, April–September cycle (two separate recurring entries per year)
+- Revenue tax
+- Professional tax
+- Electrical Directorate renewal fees
+- Fire and Safety licence fees
+- Fire and theft insurance renewal
+- Bank loan payments/EMI schedule
+- Any other filings the owners add
+
+Each item: due date, recurrence (annual/half-yearly/monthly/one-time), status, responsible person, and reminder lead time (default 15 days before due). This module tracks and reminds only — it does not file returns or make payments itself.
+
+## 8. Module: Phone Directory / Emergency Contacts
+
+A simple directory page listing: the 5 core team members above (with click-to-call/email), plus an editable list of emergency contacts and vendors (electrician, plumber, generator vendor, caterer contacts, etc.) that owners/workers can add and keep updated.
+
+## 9. Module: Marriage Certificate Generator
+
+Digitize their "Auditorium Marriage Certificate" form so staff can generate and print it directly from a completed booking, pre-filling venue details and pulling the couple's names from the booking record where possible. Fields to replicate exactly:
+- SL. No. (auto-increment, separate series from booking numbers)
+- Date
+- "This is to certify that ___, aged ___, son of ___, residing at ___, and ___, aged ___, daughter of ___, residing at ___, have furnished the particulars in memorandum declaring that their marriage function has been solemnised on ___ at THE CHOICE AUDITORIUM, ALAMARAM KANJIKODE and that the same has been registered in our Auditorium Marriage Register."
+- Two signature lines, "For THE CHOICE AUDITORIUM" footer.
+
+## 10. Unified Dashboard (home screen)
+
+One landing page per logged-in user summarising: today's/upcoming bookings, this month's income vs expense snapshot, today's attendance status, any pending before/after-function checklists, and compliance items due within 30 days. Owners see the full picture; workers see a lighter version focused on their tasks for the day.
+
+## 11. Brand & Color Palette (extracted from the client's logo)
+
+The logo is a clean two-tone mark: red field with a white wordmark/roofline icon, no secondary color in the mark itself. Use this as the design system:
+
+| Color | Hex | Role |
+|---|---|---|
+| Brand Red | `#EE1E25` | Header/navbar, primary buttons, active nav states, brand accents |
+| Off-Black | `#1A1A1A` | Body text |
+| White | `#FFFFFF` | Backgrounds, cards, logo mark |
+| Light Grey | `#F5F5F5` | Page background / section fills |
+| Success Green | `#2E7D32` | "Confirmed" booking status, "Paid"/"Done" states |
+| Warning Amber | `#E8A400` | "Enquiry" status, "Due soon" compliance/checklist flags |
+| Muted Grey | `#6B6B6B` | Secondary text, helper labels, timestamps |
+
+Define these as CSS custom properties at the top of `styles.css` (e.g. `--brand-red`, `--text`, `--bg`, `--surface`, `--success`, `--warning`, `--muted`) and use them consistently — do not hardcode hex values elsewhere. Reserve pure red for primary actions/brand chrome only; the data-heavy screens (ledger, bookings list, checklists) should lean on white/light-grey surfaces with red as an accent, not a dominant fill, so the UI stays readable for long data-entry sessions.
+
+## 12. General requirements
+
+- Fully responsive — must work well on phones (owners are often checking on mobile) and desktop.
+- All monetary values in ₹ (INR), Indian number formatting (e.g. ₹1,25,000).
+- Company header/branding on all printable documents: THE CHOICE AUDITORIUM, Alamaram, Kanjikode, Pin - 678621, phone 9495820978 / 8921505150, thechoiceauditorium.com, info@thechoiceauditorium.com, using their existing "CHOICE" logo mark and the color palette above.
+- Keep the UI simple and forms fast to fill — the day-to-day users (Manager, Assistant) are not tech-heavy staff; prioritize large touch targets, minimal typing (dropdowns over free text where the category list is known), and clear Malayalam-friendly labeling if needed (the client's own internal checklist titles are in Malayalam).
+
+## 13. Deliverable structure
+
+Organize the codebase as:
+```
+/index.html            (login)
+/dashboard.html
+/bookings.html
+/ledger.html
+/attendance.html
+/checklists.html
+/compliance.html
+/directory.html
+/css/styles.css
+/js/firebase-config.js
+/js/auth.js
+/js/bookings.js
+/js/ledger.js
+/js/attendance.js
+/js/checklists.js
+/js/compliance.js
+/js/notifications.js
+```
+Keep each JS file focused on its module's Firestore reads/writes and DOM rendering; share common UI helpers in a `/js/common.js`.
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-09-08T22:02:37+05:30.
+
+The user's current state is as follows:
+Browser State:
+  Page B9505DA31CF5F5D3804B51F9163E9478 (Dashboard | Plash Pilates) - http://localhost:4321/#/portal/dashboard [ACTIVE]
+    Viewport: 1440x812, Page Height: 980
+</ADDITIONAL_METADATA>
+<USER_SETTINGS_CHANGE>
+The user changed setting `Model Selection` from None to Gemini 3.8 Flash (Medium). No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.
+</USER_SETTINGS_CHANGE>

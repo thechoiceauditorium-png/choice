@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bookings & Calendar | The Choice Auditorium</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/supabase.min.js"></script>
+</head>
+<body>
+  <div id="header-mount"></div>
+
+  <main class="main-container">
+    <div class="page-header">
+      <div class="page-title">
+        <h2>Booking Calendar & Receipts</h2>
+        <span class="page-title-badge" id="bookings-count-badge">3 Bookings</span>
+      </div>
+      <div style="display: flex; gap: 0.75rem; align-items: center;">
+        <div style="display: flex; background: #FFF; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden;">
+          <button class="btn btn-sm" id="view-calendar-btn" style="border-radius: 0; background: var(--brand-red-light); color: var(--brand-red);">Calendar</button>
+          <button class="btn btn-sm" id="view-list-btn" style="border-radius: 0; background: #FFF; color: var(--text-light);">List View</button>
+        </div>
+        <button class="btn btn-primary btn-sm" id="open-new-booking-btn">+ New Booking Receipt</button>
+      </div>
+    </div>
+
+    <!-- Calendar View Container -->
+    <div id="calendar-view-panel" class="card">
+      <div class="card-header">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <button class="btn btn-secondary btn-sm" id="cal-prev-month">&lt;</button>
+          <h3 id="cal-month-title" style="min-width: 180px; text-align: center;">September 2026</h3>
+          <button class="btn btn-secondary btn-sm" id="cal-next-month">&gt;</button>
+          <button class="btn btn-outline btn-sm" id="cal-today-btn">Today</button>
+        </div>
+        <div style="display: flex; gap: 1rem; font-size: 0.8rem; align-items: center;">
+          <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 10px; height: 10px; border-radius: 2px; background: var(--success);"></span> Confirmed</span>
+          <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 10px; height: 10px; border-radius: 2px; background: var(--warning);"></span> Enquiry</span>
+        </div>
+      </div>
+      <div class="card-body" style="padding: 0;">
+        <div class="cal-grid-header">
+          <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+        </div>
+        <div class="cal-grid" id="calendar-grid-cells">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- List View Container -->
+    <div id="list-view-panel" class="card" style="display: none;">
+      <div class="card-header">
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+          <input type="text" id="booking-search" class="form-control" placeholder="Search by customer, phone, event..." style="max-width: 280px;">
+          <select id="booking-status-filter" class="form-control" style="max-width: 180px;">
+            <option value="all">All Statuses</option>
+            <option value="Confirmed">Confirmed</option>
+            <option value="Enquiry">Enquiry</option>
+            <option value="Completed">Completed</option>
+            <option value="Cancelled">Cancelled</option>
+          </select>
+        </div>
+      </div>
+      <div class="card-body" style="padding: 0;">
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Booking #</th>
+                <th>Dates & Times</th>
+                <th>Customer & Address</th>
+                <th>Contacts</th>
+                <th>Reference</th>
+                <th>Total (₹)</th>
+                <th>Balance (₹)</th>
+                <th>Status</th>
+                <th class="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="bookings-table-tbody">
+              <!-- Injected via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal: Booking Form (Exact Paper Booking Receipt Fields) -->
+  <div class="modal-backdrop" id="booking-modal">
+    <div class="modal-card" style="max-width: 900px;">
+      <div class="modal-header">
+        <h3 id="booking-modal-title">Booking Receipt / Reservation</h3>
+        <button class="btn-icon" id="close-booking-modal-btn">X</button>
+      </div>
+      <div class="modal-body">
+        <form id="booking-form">
+          <input type="hidden" id="booking-id">
+
+          <!-- Notice banner for Conflict Warnings -->
+          <div id="conflict-alert-banner" style="display: none; padding: 0.85rem; border-radius: var(--radius-sm); margin-bottom: 1rem; font-size: 0.88rem;"></div>
+
+          <div class="form-row">
+            <div class="form-col-sm">
+              <label class="form-label" for="booking-no">Booking No.</label>
+              <input type="number" id="booking-no" class="form-control" readonly style="background: #F0F0F0; font-weight: bold;">
+            </div>
+            <div class="form-col">
+              <label class="form-label" for="customer-name">Customer Name *</label>
+              <input type="text" id="customer-name" class="form-control" placeholder="Full name of customer" required>
+            </div>
+            <div class="form-col">
+              <label class="form-label" for="booking-status">Booking Status *</label>
+              <select id="booking-status" class="form-control" required>
+                <option value="Enquiry">Enquiry</option>
+                <option value="Confirmed" selected>Confirmed</option>
+                <option value="Completed">Completed</option>
+                <option value="Cancelled">Cancelled</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-col">
+              <label class="form-label" for="customer-address">Address</label>
+              <input type="text" id="customer-address" class="form-control" placeholder="House name, street, place, pin">
+            </div>
+            <div class="form-col">
+              <label class="form-label" for="customer-phone1">Phone 1 (Primary) *</label>
+              <input type="tel" id="customer-phone1" class="form-control" placeholder="10-digit mobile" required>
+            </div>
+            <div class="form-col">
+              <label class="form-label" for="customer-phone2">Phone 2 (Secondary) *</label>
+              <input type="tel" id="customer-phone2" class="form-control" placeholder="Alternate contact number" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-col">
+              <label class="form-label" for="booking-reference">Reference (if any)</label>
+              <input type="text" id="booking-reference" class="form-control" placeholder="Referred by / intermediary name">
+            </div>
+            <div class="form-col">
+              <label class="form-label" for="event-desc">Event Description *</label>
+              <input type="text" id="event-desc" class="form-control" placeholder="e.g. Wedding & Reception / Engagement" required>
+            </div>
+          </div>
+
+          <!-- Dates & Times -->
+          <div style="background: #F9F9F9; padding: 0.9rem; border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 1.1rem;">
+            <div style="font-weight: 700; font-size: 0.85rem; margin-bottom: 0.65rem; color: var(--brand-red);">Function Reservation Dates & Timings</div>
+            <div class="form-row">
+              <div class="form-col">
+                <label class="form-label" for="reservation-date">Reservation Date *</label>
+                <input type="date" id="reservation-date" class="form-control" required>
+              </div>
+              <div class="form-col">
+                <label class="form-label" for="from-datetime">From (Date & Time) *</label>
+                <input type="datetime-local" id="from-datetime" class="form-control" required>
+              </div>
+              <div class="form-col">
+                <label class="form-label" for="to-datetime">To (Date & Time) *</label>
+                <input type="datetime-local" id="to-datetime" class="form-control" required>
+              </div>
+            </div>
+          </div>
+
+          <!-- Line Items Table (Matches Exact Paper Receipt) -->
+          <div style="margin-bottom: 1.1rem;">
+            <div style="font-weight: 700; font-size: 0.85rem; margin-bottom: 0.5rem;">Charges & Advance Breakup (₹)</div>
+            <div class="table-responsive">
+              <table class="data-table" style="font-size: 0.82rem;">
+                <thead>
+                  <tr style="background: #F2F2F2;">
+                    <th style="width: 45px;">Sl.</th>
+                    <th>Particulars</th>
+                    <th style="width: 140px;" class="text-right">Advance (Rs.)</th>
+                    <th style="width: 150px;" class="text-right">Amount (Rs.)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>1</td>
+                    <td>Rent</td>
+                    <td><input type="number" id="li-rent-adv" class="form-control text-right line-item-adv" value="0" min="0"></td>
+                    <td><input type="number" id="li-rent-amt" class="form-control text-right line-item-amt" value="0" min="0"></td>
+                  </tr>
+                  <tr>
+                    <td>2(a)</td>
+                    <td>Hire Charges — Furniture</td>
+                    <td><input type="number" id="li-furniture-adv" class="form-control text-right line-item-adv" value="0" min="0"></td>
+                    <td><input type="number" id="li-furniture-amt" class="form-control text-right line-item-amt" value="0" min="0"></td>
+                  </tr>
+                  <tr>
+                    <td>2(b)</td>
+                    <td>Hire Charges — Cooking utensils</td>
+                    <td><input type="number" id="li-utensils-adv" class="form-control text-right line-item-adv" value="0" min="0"></td>
+                    <td><input type="number" id="li-utensils-amt" class="form-control text-right line-item-amt" value="0" min="0"></td>
+                  </tr>
+                  <tr>
+                    <td>3</td>
+                    <td>Generator Charge</td>
+                    <td><input type="number" id="li-generator-adv" class="form-control text-right line-item-adv" value="0" min="0"></td>
+                    <td><input type="number" id="li-generator-amt" class="form-control text-right line-item-amt" value="0" min="0"></td>
+                  </tr>
+                  <tr>
+                    <td>4</td>
+                    <td>Service Charge</td>
+                    <td><input type="number" id="li-service-adv" class="form-control text-right line-item-adv" value="0" min="0"></td>
+                    <td><input type="number" id="li-service-amt" class="form-control text-right line-item-amt" value="0" min="0"></td>
+                  </tr>
+                  <tr>
+                    <td>5</td>
+                    <td>Miscellaneous</td>
+                    <td><input type="number" id="li-misc-adv" class="form-control text-right line-item-adv" value="0" min="0"></td>
+                    <td><input type="number" id="li-misc-amt" class="form-control text-right line-item-amt" value="0" min="0"></td>
+                  </tr>
+                  <tr>
+                    <td>6</td>
+                    <td>Electricity charges for photography (if any)</td>
+                    <td><input type="number" id="li-elec-adv" class="form-control text-right line-item-adv" value="0" min="0"></td>
+                    <td><input type="number" id="li-elec-amt" class="form-control text-right line-item-amt" value="0" min="0"></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Total Calculations & Payment Due -->
+          <div style="background: #FAFAFA; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem; margin-bottom: 1rem;">
+            <div class="form-row">
+              <div class="form-col">
+                <label class="form-label">Total Amount</label>
+                <input type="text" id="calc-total" class="form-control text-right" readonly style="font-weight: bold; background: #FFF;">
+              </div>
+              <div class="form-col">
+                <label class="form-label">Service Tax (if any)</label>
+                <input type="number" id="calc-tax" class="form-control text-right" value="0" min="0">
+              </div>
+              <div class="form-col">
+                <label class="form-label" style="color: var(--brand-red);">Grand Total</label>
+                <input type="text" id="calc-grand-total" class="form-control text-right" readonly style="font-weight: 800; font-size: 1.1rem; color: var(--brand-red); background: #FFF;">
+              </div>
+            </div>
+
+            <div class="form-row" style="margin-top: 0.75rem;">
+              <div class="form-col">
+                <label class="form-label">Advance Received</label>
+                <input type="text" id="calc-advance-received" class="form-control text-right" readonly style="font-weight: bold; background: #FFF; color: #2E7D32;">
+              </div>
+              <div class="form-col">
+                <label class="form-label">Balance Amount</label>
+                <input type="text" id="calc-balance" class="form-control text-right" readonly style="font-weight: bold; background: #FFF; color: #C62828;">
+              </div>
+              <div class="form-col">
+                <label class="form-label" for="balance-due-date">Balance to be paid on or before</label>
+                <input type="date" id="balance-due-date" class="form-control">
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="cancel-booking-modal-btn">Cancel</button>
+        <button type="button" class="btn btn-primary" id="save-booking-btn">Save Booking</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-mount"></div>
+
+  <script type="module" src="js/bookings.js"></script>
+</body>
+</html>

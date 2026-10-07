@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Compliance & Filings | The Choice Auditorium</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/supabase.min.js"></script>
+</head>
+<body>
+  <div id="header-mount"></div>
+
+  <main class="main-container">
+    <div class="page-header">
+      <div class="page-title">
+        <h2>Statutory & Regulatory Compliance Tracker</h2>
+        <span class="page-title-badge">Panchayath Tax, Licenses & Renewals</span>
+      </div>
+      <button class="btn btn-primary btn-sm" id="new-compliance-btn">+ Add Statutory Item</button>
+    </div>
+
+    <!-- Alert Banner for Due Soon items -->
+    <div id="compliance-alert-box" style="margin-bottom: 1.5rem;">
+      <!-- Populated by JS -->
+    </div>
+
+    <!-- Compliance Items Table -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Statutory Obligations & Cycles</h3>
+      </div>
+      <div class="card-body" style="padding: 0;">
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Obligation / Tax Item</th>
+                <th>Cycle / Recurrence</th>
+                <th>Due Date</th>
+                <th>Reminder Lead</th>
+                <th>Responsible</th>
+                <th>Status</th>
+                <th>Notes / Agency</th>
+                <th style="min-width: 210px; text-align: right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="compliance-table-tbody">
+              <!-- Injected via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Completed Compliance History Log -->
+    <div class="card" style="margin-top: 2rem;">
+      <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 class="card-title">Completed Filings & Payment History</h3>
+        <span class="badge badge-confirmed" id="completed-count-badge">0 Completed</span>
+      </div>
+      <div class="card-body" style="padding: 0;">
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Completed Date</th>
+                <th>Obligation Title</th>
+                <th>Cycle / Period</th>
+                <th>Completed By</th>
+                <th>Challan / Ref No.</th>
+                <th>Amount Paid</th>
+                <th>Notes / Remarks</th>
+              </tr>
+            </thead>
+            <tbody id="compliance-history-tbody">
+              <!-- Injected via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal: Mark Compliance as Done -->
+  <div class="modal-backdrop" id="mark-done-modal">
+    <div class="modal-card" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3>Record Completed Compliance</h3>
+        <button class="btn-icon" id="close-done-modal-btn">X</button>
+      </div>
+      <div class="modal-body">
+        <form id="mark-done-form">
+          <input type="hidden" id="done-comp-id">
+          
+          <div class="form-group">
+            <label class="form-label">Obligation</label>
+            <input type="text" id="done-comp-title" class="form-control" readonly style="background: #F5F5F5; font-weight: 600;">
+          </div>
+
+          <div class="form-row">
+            <div class="form-col">
+              <label class="form-label" for="done-comp-date">Date Completed *</label>
+              <input type="date" id="done-comp-date" class="form-control" required>
+            </div>
+            <div class="form-col">
+              <label class="form-label" for="done-comp-amount">Amount Paid (₹)</label>
+              <input type="number" id="done-comp-amount" class="form-control" placeholder="Optional amount in ₹">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="done-comp-ref">Challan / Receipt / Transaction Reference</label>
+            <input type="text" id="done-comp-ref" class="form-control" placeholder="e.g. Challan #KL-2026-98124, Bank Ref">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="done-comp-notes">Filing Notes / Remarks</label>
+            <textarea id="done-comp-notes" class="form-control" rows="2" placeholder="Filing office, receipt submitted to office, etc."></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="cancel-done-modal-btn">Cancel</button>
+        <button type="button" class="btn btn-primary" id="save-done-comp-btn">Confirm Completion</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: New / Edit Compliance Item -->
+  <div class="modal-backdrop" id="compliance-modal">
+    <div class="modal-card" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3 id="comp-modal-title">Statutory Obligation</h3>
+        <button class="btn-icon" id="close-comp-modal-btn">X</button>
+      </div>
+      <div class="modal-body">
+        <form id="compliance-form">
+          <input type="hidden" id="comp-id">
+
+          <div class="form-group">
+            <label class="form-label" for="comp-title">Obligation Title *</label>
+            <input type="text" id="comp-title" class="form-control" placeholder="e.g. Panchayath Tax / Electrical Renewal" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-col">
+              <label class="form-label" for="comp-recurrence">Recurrence *</label>
+              <select id="comp-recurrence" class="form-control" required>
+                <option value="Half-yearly">Half-yearly (6 Months)</option>
+                <option value="Annual">Annual (1 Year)</option>
+                <option value="Monthly">Monthly</option>
+                <option value="One-time">One-time</option>
+              </select>
+            </div>
+            <div class="form-col">
+              <label class="form-label" for="comp-due-date">Due Date *</label>
+              <input type="date" id="comp-due-date" class="form-control" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-col">
+              <label class="form-label" for="comp-responsible">Responsible Person *</label>
+              <select id="comp-responsible" class="form-control" required>
+                <option value="Elby Abin">Elby Abin (CEO)</option>
+                <option value="Vibin Varghese K">Vibin Varghese K (Director)</option>
+                <option value="Abin Varghese K">Abin Varghese K (Director)</option>
+                <option value="Gopinathan P">Gopinathan P (Manager)</option>
+                <option value="Sajitha">Sajitha (Assistant)</option>
+              </select>
+            </div>
+            <div class="form-col">
+              <label class="form-label" for="comp-lead">Reminder Lead Time (Days)</label>
+              <input type="number" id="comp-lead" class="form-control" value="15" min="1" max="90">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="comp-notes">Notes / Office / Requirements</label>
+            <textarea id="comp-notes" class="form-control" rows="2" placeholder="Office location, auditor details, inspection requirements..."></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="cancel-comp-modal-btn">Cancel</button>
+        <button type="button" class="btn btn-primary" id="save-comp-btn">Save Obligation</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-mount"></div>
+
+  <script type="module" src="js/compliance.js"></script>
+</body>
+</html>

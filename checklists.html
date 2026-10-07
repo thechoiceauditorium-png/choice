@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Operational Checklists | The Choice Auditorium</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/supabase.min.js"></script>
+</head>
+<body>
+  <div id="header-mount"></div>
+
+  <main class="main-container">
+    <div class="page-header">
+      <div class="page-title">
+        <h2>Auditorium Function Checklists</h2>
+        <span class="page-title-badge">Signed By / Verified By System</span>
+      </div>
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <button class="btn btn-primary btn-sm" id="create-custom-chk-btn">+ Add Own Checklist</button>
+        <button class="btn btn-secondary btn-sm" id="new-function-chk-btn">+ Function Checklist</button>
+        <button class="btn btn-secondary btn-sm" id="gen-15day-btn">15-Day Routine</button>
+        <button class="btn btn-outline btn-sm" id="edit-templates-btn">Edit Templates</button>
+      </div>
+    </div>
+
+    <!-- Active Checklist Instances Tabs -->
+    <div class="card">
+      <div class="card-header" style="overflow-x: auto;">
+        <div style="display: flex; gap: 0.5rem;" id="chk-tabs-container">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+      <div class="card-body" id="active-chk-body">
+        <!-- Active checklist details & item rows -->
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal: Generate Checklist for Booking -->
+  <div class="modal-backdrop" id="gen-chk-modal">
+    <div class="modal-card" style="max-width: 540px;">
+      <div class="modal-header">
+        <h3>Create Function Checklist</h3>
+        <button class="btn-icon" id="close-gen-chk-modal-btn">X</button>
+      </div>
+      <div class="modal-body">
+        <form id="gen-chk-form">
+          <div class="form-group">
+            <label class="form-label" for="gen-chk-type">Checklist Type *</label>
+            <select id="gen-chk-type" class="form-control" required>
+              <option value="beforeFunction">Before-Function Checklist (14 Items)</option>
+              <option value="afterFunction">After-Function Checklist (16 Items)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="gen-chk-booking">Select Function / Booking *</label>
+            <select id="gen-chk-booking" class="form-control" required>
+              <!-- Populated via JS from Confirmed bookings -->
+            </select>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="cancel-gen-chk-modal-btn">Cancel</button>
+        <button type="button" class="btn btn-primary" id="confirm-gen-chk-btn">Create & Open</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Template Editor (Owners can edit 14, 16, 17 items) -->
+  <div class="modal-backdrop" id="template-editor-modal">
+    <div class="modal-card" style="max-width: 780px;">
+      <div class="modal-header">
+        <h3>Checklist Item Master Templates</h3>
+        <button class="btn-icon" id="close-template-modal-btn">X</button>
+      </div>
+      <div class="modal-body">
+        <div style="margin-bottom: 1rem;">
+          <label class="form-label" for="template-type-select">Select Checklist Template to Edit</label>
+          <select id="template-type-select" class="form-control">
+            <option value="beforeFunction">Before-Function Checklist (14 items)</option>
+            <option value="afterFunction">After-Function Checklist (16 items)</option>
+            <option value="every15Days">Every-15-Days Routine Checklist (17 items)</option>
+          </select>
+        </div>
+        <p style="font-size: 0.8rem; color: #666; margin-bottom: 1rem;">
+          Edit the numbered task descriptions below. New checklists will automatically use this updated template.
+        </p>
+        <div id="template-items-list" style="max-height: 50vh; overflow-y: auto;">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="cancel-template-modal-btn">Close</button>
+        <button type="button" class="btn btn-primary" id="save-template-items-btn">Save Template Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Create Custom Checklist -->
+  <div class="modal-backdrop" id="custom-chk-modal">
+    <div class="modal-card" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3>Create Custom Checklist</h3>
+        <button class="btn-icon" id="close-custom-chk-modal-btn">X</button>
+      </div>
+      <div class="modal-body">
+        <form id="custom-chk-form">
+          <div class="form-group">
+            <label class="form-label" for="custom-chk-title">Checklist Title *</label>
+            <input type="text" id="custom-chk-title" class="form-control" placeholder="e.g. Kitchen Deep Cleaning / Generator Overhaul" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="custom-chk-items">Tasks / Items (Enter one item per line) *</label>
+            <textarea id="custom-chk-items" class="form-control" rows="8" placeholder="Clean all burners and gas pipelines&#10;Wash and dry cooking cauldrons&#10;Sanitize food prep tables&#10;Empty and reline grease traps" required></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="cancel-custom-chk-modal-btn">Cancel</button>
+        <button type="button" class="btn btn-primary" id="save-custom-chk-btn">Create Checklist</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Edit Single Item -->
+  <div class="modal-backdrop" id="edit-item-modal">
+    <div class="modal-card" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3>Edit Checklist Item</h3>
+        <button class="btn-icon" id="close-edit-item-modal-btn">X</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="edit-item-idx">
+        <div class="form-group">
+          <label class="form-label" for="edit-item-text">Task Description *</label>
+          <textarea id="edit-item-text" class="form-control" rows="3" required></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="cancel-edit-item-modal-btn">Cancel</button>
+        <button type="button" class="btn btn-primary" id="save-single-item-btn">Update Task</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-mount"></div>
+
+  <script type="module" src="js/checklists.js"></script>
+</body>
+</html>

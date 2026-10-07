@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Code — pineapplelabs.co.in</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .qr-page-container {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #F4F6F8;
+      padding: 2rem 1rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    .qr-card {
+      background: #FFFFFF;
+      border: 1px solid #E0E0E0;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      max-width: 440px;
+      width: 100%;
+      padding: 2.25rem 2rem;
+      text-align: center;
+    }
+    .qr-brand-tag {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #9E1B22;
+      background: #FDE8E9;
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      margin-bottom: 0.85rem;
+    }
+    .qr-title {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #1A1A1A;
+      margin: 0 0 0.35rem;
+    }
+    .qr-subtitle {
+      font-size: 0.9rem;
+      color: #666666;
+      margin: 0 0 1.75rem;
+      word-break: break-all;
+    }
+    .qr-box-wrapper {
+      background: #FFFFFF;
+      border: 2px solid #EEEEEE;
+      border-radius: 10px;
+      padding: 1.25rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+    #qrcode canvas, #qrcode img {
+      display: block;
+      margin: 0 auto;
+    }
+    .qr-meta-box {
+      background: #F8F9FA;
+      border: 1px solid #E9ECEF;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+    .qr-meta-url {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #212529;
+      text-align: left;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .qr-btn-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+    .qr-btn-row {
+      display: flex;
+      gap: 0.65rem;
+    }
+    .qr-btn-row .btn {
+      flex: 1;
+    }
+    .toast-msg {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1A1A1A;
+      color: #FFFFFF;
+      padding: 0.65rem 1.25rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+      z-index: 9999;
+    }
+    .toast-msg.show {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="qr-page-container">
+    <div class="qr-card">
+      <span class="qr-brand-tag">Verified Destination</span>
+      <h1 class="qr-title">pineapplelabs.co.in</h1>
+      <p class="qr-subtitle">Scan using smartphone camera</p>
+
+      <div class="qr-box-wrapper">
+        <div id="qrcode"></div>
+      </div>
+
+      <div class="qr-meta-box">
+        <span class="qr-meta-url" id="target-url-text">https://pineapplelabs.co.in</span>
+        <button type="button" class="btn btn-sm btn-secondary" id="copy-url-btn" style="padding: 0.25rem 0.55rem; font-size: 0.75rem;">Copy</button>
+      </div>
+
+      <div class="qr-btn-group">
+        <div class="qr-btn-row">
+          <a href="https://pineapplelabs.co.in" target="_blank" rel="noopener noreferrer" class="btn btn-primary">Visit Site</a>
+          <button type="button" class="btn btn-secondary" id="download-qr-btn">Download PNG</button>
+        </div>
+        <button type="button" class="btn btn-outline btn-sm" id="print-qr-btn">Print QR Code</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast-msg">Link copied to clipboard</div>
+
+  <script src="js/qrcode.min.js"></script>
+  <script>
+    const targetUrl = "https://pineapplelabs.co.in";
+    const qrContainer = document.getElementById("qrcode");
+
+    // Initialize local QR code renderer
+    const qr = new QRCode(qrContainer, {
+      text: targetUrl,
+      width: 240,
+      height: 240,
+      colorDark: "#111111",
+      colorLight: "#FFFFFF",
+      correctLevel: QRCode.CorrectLevel.H
+    });
+
+    // Copy URL handler
+    document.getElementById("copy-url-btn").addEventListener("click", () => {
+      navigator.clipboard.writeText(targetUrl).then(() => {
+        showToast("URL copied to clipboard");
+      }).catch(() => {
+        showToast("Failed to copy URL");
+      });
+    });
+
+    // Download PNG handler
+    document.getElementById("download-qr-btn").addEventListener("click", () => {
+      const canvas = qrContainer.querySelector("canvas");
+      const img = qrContainer.querySelector("img");
+      let dataUrl = "";
+
+      if (canvas) {
+        dataUrl = canvas.toDataURL("image/png");
+      } else if (img && img.src) {
+        dataUrl = img.src;
+      }
+
+      if (!dataUrl) {
+        showToast("QR code not ready");
+        return;
+      }
+
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = "pineapplelabs-qr-code.png";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      showToast("Downloading QR Code PNG");
+    });
+
+    // Print QR handler
+    document.getElementById("print-qr-btn").addEventListener("click", () => {
+      window.print();
+    });
+
+    function showToast(text) {
+      const t = document.getElementById("toast");
+      t.textContent = text;
+      t.classList.add("show");
+      setTimeout(() => {
+        t.classList.remove("show");
+      }, 2000);
+    }
+  </script>
+</body>
+</html>

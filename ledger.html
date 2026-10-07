@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Books / Ledger | The Choice Auditorium</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/supabase.min.js"></script>
+</head>
+<body>
+  <div id="header-mount"></div>
+
+  <main class="main-container">
+    <div class="page-header">
+      <div class="page-title">
+        <h2>Books — Income & Expense Ledger</h2>
+        <span class="page-title-badge" id="ledger-records-badge">Records</span>
+      </div>
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <button class="btn btn-primary btn-sm" id="open-new-entry-btn">+ New Entry</button>
+      </div>
+    </div>
+
+    <!-- Monthly Summary Stat Cards -->
+    <div class="stats-grid">
+      <div class="stat-card green">
+        <div>
+          <div class="stat-label">Total Income (This Month)</div>
+          <div class="stat-value" id="summary-total-income">₹0</div>
+          <div class="stat-sub" id="summary-income-count">0 transactions</div>
+        </div>
+        <div class="stat-icon" style="font-weight: bold; font-size: 0.9rem;">INC</div>
+      </div>
+      <div class="stat-card">
+        <div>
+          <div class="stat-label">Total Expenses (This Month)</div>
+          <div class="stat-value" id="summary-total-expense" style="color: #C62828;">₹0</div>
+          <div class="stat-sub" id="summary-expense-count">0 transactions</div>
+        </div>
+        <div class="stat-icon" style="color: #C62828; background: #FFEBEE; font-weight: bold; font-size: 0.9rem;">EXP</div>
+      </div>
+      <div class="stat-card blue">
+        <div>
+          <div class="stat-label">Net Balance</div>
+          <div class="stat-value" id="summary-net-balance">₹0</div>
+          <div class="stat-sub">Income minus Expenses</div>
+        </div>
+        <div class="stat-icon" style="font-weight: bold; font-size: 0.9rem;">NET</div>
+      </div>
+    </div>
+
+    <!-- Filter & Table Card -->
+    <div class="card">
+      <div class="card-header">
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; width: 100%;">
+          <input type="text" id="ledger-search" class="form-control" placeholder="Search description, logged by..." style="max-width: 240px;">
+          
+          <select id="ledger-type-filter" class="form-control" style="max-width: 140px;">
+            <option value="all">All Types</option>
+            <option value="income">Income Only</option>
+            <option value="expense">Expense Only</option>
+          </select>
+
+          <select id="ledger-cat-filter" class="form-control" style="max-width: 220px;">
+            <option value="all">All Categories</option>
+            <!-- Injected dynamically -->
+          </select>
+
+          <input type="month" id="ledger-month-filter" class="form-control" style="max-width: 170px;">
+          
+          <button class="btn btn-secondary btn-sm" id="reset-filters-btn">Reset</button>
+        </div>
+      </div>
+      <div class="card-body" style="padding: 0;">
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Category</th>
+                <th>Description / Maintenance Details</th>
+                <th>Linked Booking</th>
+                <th class="text-right">Amount (₹)</th>
+                <th>Logged By</th>
+                <th style="text-align: right; min-width: 140px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="ledger-table-tbody">
+              <!-- Injected via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal: New Ledger Entry -->
+  <div class="modal-backdrop" id="entry-modal">
+    <div class="modal-card" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3 id="entry-modal-title">Log Ledger Entry</h3>
+        <button class="btn-icon" id="close-entry-modal-btn">X</button>
+      </div>
+      <div class="modal-body">
+        <form id="entry-form">
+          <input type="hidden" id="entry-id">
+
+          <div class="form-row">
+            <div class="form-col">
+              <label class="form-label" for="entry-date">Date *</label>
+              <input type="date" id="entry-date" class="form-control" required>
+            </div>
+            <div class="form-col">
+              <label class="form-label" for="entry-type">Transaction Type *</label>
+              <select id="entry-type" class="form-control" required>
+                <option value="expense">Expense</option>
+                <option value="income">Income</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="entry-category">Category *</label>
+            <select id="entry-category" class="form-control" required>
+              <!-- Filled based on type -->
+            </select>
+          </div>
+
+          <div class="form-group" id="maint-desc-wrapper" style="display: none;">
+            <label class="form-label" for="entry-maint-desc" style="color: var(--brand-red);">
+              Maintenance Details * (Required for Maintenance Category)
+            </label>
+            <textarea id="entry-maint-desc" class="form-control" rows="2" placeholder="Specify exact item, room, and nature of repair/maintenance"></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-col">
+              <label class="form-label" for="entry-amount">Amount (₹) *</label>
+              <input type="number" id="entry-amount" class="form-control" placeholder="Amount in Rupees" required min="1">
+            </div>
+            <div class="form-col">
+              <label class="form-label" for="entry-booking">Link to Booking (Optional)</label>
+              <select id="entry-booking" class="form-control">
+                <option value="">-- None (Standalone) --</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="entry-desc">General Description / Particulars</label>
+            <input type="text" id="entry-desc" class="form-control" placeholder="Short note, bill number, payee, etc.">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="cancel-entry-modal-btn">Cancel</button>
+        <button type="button" class="btn btn-primary" id="save-entry-btn">Save Entry</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-mount"></div>
+
+  <script type="module" src="js/ledger.js"></script>
+</body>
+</html>

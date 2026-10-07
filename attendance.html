@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Staff Attendance | The Choice Auditorium</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/supabase.min.js"></script>
+</head>
+<body>
+  <div id="header-mount"></div>
+
+  <main class="main-container">
+    <div class="page-header">
+      <div class="page-title">
+        <h2>Staff Daily Attendance</h2>
+        <span class="page-title-badge" id="attendance-role-badge">Worker Submission & Owner Approval</span>
+      </div>
+      <div id="owner-permission-notice" style="font-size: 0.82rem; color: var(--muted);">
+        <!-- Injected via JS -->
+      </div>
+    </div>
+
+    <!-- Daily Marking & Approval Panel -->
+    <div class="card" id="mark-attendance-card">
+      <div class="card-header" style="flex-wrap: wrap; gap: 0.75rem;">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <h3 class="card-title">Daily Attendance & Approval</h3>
+          <input type="date" id="att-selected-date" class="form-control" style="max-width: 170px;">
+        </div>
+        <div id="att-workflow-hint" style="font-size: 0.8rem; color: #666;">
+          <!-- Role specific instructions injected via JS -->
+        </div>
+      </div>
+      <div class="card-body">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.5rem;" id="workers-marking-container">
+          <!-- Populated by JS for Gopinathan & Sajitha -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Monthly Summary Section -->
+    <div class="card">
+      <div class="card-header">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          <h3 class="card-title">Monthly Attendance Summary</h3>
+          <input type="month" id="att-month-selector" class="form-control" style="max-width: 170px;">
+        </div>
+      </div>
+      <div class="card-body">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;" id="monthly-stats-container">
+          <!-- Summary cards for Gopinathan & Sajitha -->
+        </div>
+
+        <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem;">Daily Log & Approval History</h4>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Staff Member</th>
+                <th>Designation</th>
+                <th>Status</th>
+                <th>Notes / Reason</th>
+                <th>Marked By</th>
+                <th>Approval Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="attendance-history-tbody">
+              <!-- Injected via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="toast-mount"></div>
+
+  <script type="module" src="js/attendance.js"></script>
+</body>
+</html>

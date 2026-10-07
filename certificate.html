@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Marriage Certificate Generator | The Choice Auditorium</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/print.css">
+  <script src="js/supabase.min.js"></script>
+  <style>
+    .cert-screen-wrapper {
+      background: #FFF;
+      border: 8px double #1A1A1A;
+      padding: 3rem 2.5rem;
+      border-radius: 4px;
+      box-shadow: var(--shadow-md);
+      margin-top: 1.5rem;
+      font-family: "Georgia", "Times New Roman", serif;
+      position: relative;
+    }
+    .cert-seal {
+      position: absolute;
+      bottom: 2rem;
+      left: 3rem;
+      width: 90px;
+      height: 90px;
+      border: 2px dashed #C6151B;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #C6151B;
+      font-size: 0.72rem;
+      text-align: center;
+      font-weight: bold;
+      transform: rotate(-15deg);
+      opacity: 0.85;
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+  <div id="header-mount"></div>
+
+  <main class="main-container">
+    <div class="page-header">
+      <div class="page-title">
+        <h2>Auditorium Marriage Certificate Generator</h2>
+        <span class="page-title-badge">Official Marriage Register Record</span>
+      </div>
+      <div style="display: flex; gap: 0.5rem;">
+        <button class="btn btn-secondary btn-sm" id="load-from-booking-btn">Pre-fill from Booking</button>
+        <button class="btn btn-primary btn-sm" id="print-cert-btn">Print Certificate</button>
+      </div>
+    </div>
+
+    <!-- Pre-fill from booking modal -->
+    <div class="modal-backdrop" id="prefill-modal">
+      <div class="modal-card" style="max-width: 500px;">
+        <div class="modal-header">
+          <h3>Select Booking to Pre-fill</h3>
+          <button class="btn-icon" id="close-prefill-modal-btn">X</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="booking-selector">Confirmed Marriage Booking</label>
+            <select id="booking-selector" class="form-control"></select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" id="cancel-prefill-btn">Cancel</button>
+          <button class="btn btn-primary" id="apply-prefill-btn">Apply to Certificate</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Certificate Generator Form / Live Editable View -->
+    <div class="card no-print" style="margin-bottom: 1.5rem;">
+      <div class="card-header">
+        <h3 class="card-title">Certificate Details</h3>
+        <span style="font-size: 0.8rem; color: #777;">Fill particulars below or edit directly on the certificate sheet</span>
+      </div>
+      <div class="card-body">
+        <div class="form-row">
+          <div class="form-col-sm">
+            <label class="form-label" for="form-sl-no">SL. No.</label>
+            <input type="text" id="form-sl-no" class="form-control" placeholder="e.g. MC-101">
+          </div>
+          <div class="form-col">
+            <label class="form-label" for="form-cert-date">Certificate Date</label>
+            <input type="date" id="form-cert-date" class="form-control">
+          </div>
+          <div class="form-col">
+            <label class="form-label" for="form-marriage-date">Solemnised Date</label>
+            <input type="date" id="form-marriage-date" class="form-control">
+          </div>
+        </div>
+
+        <div style="background: #FAFAFA; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem; margin: 1rem 0;">
+          <div style="font-weight: 700; font-size: 0.85rem; color: var(--brand-red); margin-bottom: 0.75rem;">Bridegroom Particulars</div>
+          <div class="form-row">
+            <div class="form-col">
+              <label class="form-label">Groom's Full Name</label>
+              <input type="text" id="form-groom-name" class="form-control" placeholder="e.g. Rahul R">
+            </div>
+            <div class="form-col-sm">
+              <label class="form-label">Aged</label>
+              <input type="number" id="form-groom-age" class="form-control" placeholder="e.g. 28">
+            </div>
+            <div class="form-col">
+              <label class="form-label">Son of</label>
+              <input type="text" id="form-groom-father" class="form-control" placeholder="Father's name">
+            </div>
+          </div>
+          <div class="form-group" style="margin-top: 0.5rem; margin-bottom: 0;">
+            <label class="form-label">Residing at</label>
+            <input type="text" id="form-groom-residence" class="form-control" placeholder="House name, place, district, pin">
+          </div>
+        </div>
+
+        <div style="background: #FAFAFA; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem; margin-bottom: 1rem;">
+          <div style="font-weight: 700; font-size: 0.85rem; color: var(--brand-red); margin-bottom: 0.75rem;">Bride Particulars</div>
+          <div class="form-row">
+            <div class="form-col">
+              <label class="form-label">Bride's Full Name</label>
+              <input type="text" id="form-bride-name" class="form-control" placeholder="e.g. Anjali M">
+            </div>
+            <div class="form-col-sm">
+              <label class="form-label">Aged</label>
+              <input type="number" id="form-bride-age" class="form-control" placeholder="e.g. 25">
+            </div>
+            <div class="form-col">
+              <label class="form-label">Daughter of</label>
+              <input type="text" id="form-bride-father" class="form-control" placeholder="Father's name">
+            </div>
+          </div>
+          <div class="form-group" style="margin-top: 0.5rem; margin-bottom: 0;">
+            <label class="form-label">Residing at</label>
+            <input type="text" id="form-bride-residence" class="form-control" placeholder="House name, place, district, pin">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Official Certificate Document Preview & Printable Area -->
+    <div id="cert-printable-container">
+      <div class="cert-screen-wrapper print-page">
+        <!-- Header -->
+        <div class="print-header" style="text-align: center; border-bottom: 3px double #000; padding-bottom: 12px; margin-bottom: 25px;">
+          <div style="max-width: 180px; margin: 0 auto 12px auto; color: var(--brand-red);">
+            <svg viewBox="0 0 540 280" xmlns="http://www.w3.org/2000/svg" style="width: 100%; height: auto; display: block;">
+              <g fill="currentColor">
+                <path d="M 50,118 L 196,118 L 270,52 L 344,118 L 490,118 L 490,109 L 348,109 L 270,40 L 192,109 L 50,109 Z" />
+                <path fill-rule="evenodd" d="M 270,68 L 322,114 L 218,114 Z M 270,82 L 238,110 L 302,110 Z" />
+                <path d="M 48,124 Q 270,121 492,124 L 492,128 Q 270,125 48,128 Z" />
+                <text x="270" y="212" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-weight="900" font-size="94" letter-spacing="4" text-anchor="middle">CHOICE</text>
+                <path d="M 48,242 Q 270,238 492,242 Q 270,250 48,242 Z" />
+              </g>
+            </svg>
+          </div>
+          <h1 style="font-size: 24pt; font-weight: 900; letter-spacing: 1.5px; text-transform: uppercase; margin: 0 0 4px 0;">
+            THE CHOICE AUDITORIUM
+          </h1>
+          <div style="font-size: 11pt; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px;">
+            MARRIAGE & EVENT CENTRE
+          </div>
+          <div style="font-size: 10pt; color: #333; line-height: 1.3;">
+            Alamaram, Kanjikode, Palakkad, Kerala — Pin: 678621<br>
+            Phone: 9495820978 / 8921505150 | Email: info@thechoiceauditorium.com
+          </div>
+          <div style="display: inline-block; border: 2px solid #000; padding: 5px 24px; font-size: 14pt; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; margin-top: 15px;">
+            AUDITORIUM MARRIAGE CERTIFICATE
+          </div>
+        </div>
+
+        <!-- Serial & Date Header -->
+        <div style="display: flex; justify-content: space-between; font-size: 11pt; margin-bottom: 25px;">
+          <div><strong>SL. No.:</strong> <span id="disp-sl-no" class="cert-underlined" style="min-width: 100px;">—</span></div>
+          <div><strong>Date:</strong> <span id="disp-cert-date" class="cert-underlined" style="min-width: 140px;">—</span></div>
+        </div>
+
+        <!-- Certificate Body -->
+        <div class="cert-body" style="font-size: 13pt; line-height: 2.4; text-align: justify;">
+          This is to certify that 
+          <span id="disp-groom-name" class="cert-underlined" style="min-width: 220px;">—</span>, 
+          aged <span id="disp-groom-age" class="cert-underlined" style="min-width: 45px;">—</span>, 
+          son of <span id="disp-groom-father" class="cert-underlined" style="min-width: 180px;">—</span>, 
+          residing at <span id="disp-groom-residence" class="cert-underlined" style="min-width: 280px;">—</span>, 
+          and <span id="disp-bride-name" class="cert-underlined" style="min-width: 220px;">—</span>, 
+          aged <span id="disp-bride-age" class="cert-underlined" style="min-width: 45px;">—</span>, 
+          daughter of <span id="disp-bride-father" class="cert-underlined" style="min-width: 180px;">—</span>, 
+          residing at <span id="disp-bride-residence" class="cert-underlined" style="min-width: 280px;">—</span>, 
+          have furnished the particulars in memorandum declaring that their marriage function has been solemnised on 
+          <span id="disp-marriage-date" class="cert-underlined" style="min-width: 160px;">—</span> 
+          at <strong>THE CHOICE AUDITORIUM, ALAMARAM KANJIKODE</strong> and that the same has been registered in our Auditorium Marriage Register.
+        </div>
+
+        <!-- Seal & Signatures -->
+        <div class="cert-seal no-print">
+          The Choice<br>Auditorium<br>SEAL
+        </div>
+
+        <div class="print-signatures" style="margin-top: 75px; display: flex; justify-content: space-between; align-items: flex-end;">
+          <div class="sig-block" style="width: 200px;">
+            Signature of Bridegroom
+          </div>
+          <div class="sig-block" style="width: 200px;">
+            Signature of Bride
+          </div>
+          <div class="sig-block" style="width: 220px;">
+            For THE CHOICE AUDITORIUM<br>
+            (Authorised Signatory)
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="toast-mount"></div>
+
+  <script type="module">
+    import { requireAuth } from "./js/auth.js";
+    import { renderHeader, formatDate, showToast, openModal, closeModal } from "./js/common.js";
+    import { dbStore } from "./js/firebase-config.js";
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const user = requireAuth();
+      if (!user) return;
+      renderHeader("certificate");
+
+      const today = new Date().toISOString().split("T")[0];
+      document.getElementById("form-cert-date").value = today;
+      document.getElementById("form-marriage-date").value = today;
+      syncCertificateDisplay();
+
+      // Bind input events for live preview sync
+      const inputs = [
+        "form-sl-no", "form-cert-date", "form-marriage-date",
+        "form-groom-name", "form-groom-age", "form-groom-father", "form-groom-residence",
+        "form-bride-name", "form-bride-age", "form-bride-father", "form-bride-residence"
+      ];
+      inputs.forEach(id => {
+        document.getElementById(id)?.addEventListener("input", syncCertificateDisplay);
+      });
+
+      // Print button
+      document.getElementById("print-cert-btn")?.addEventListener("click", () => window.print());
+
+      // Pre-fill modal
+      document.getElementById("load-from-booking-btn")?.addEventListener("click", openPrefillModal);
+      document.getElementById("close-prefill-modal-btn")?.addEventListener("click", () => closeModal("prefill-modal"));
+      document.getElementById("cancel-prefill-btn")?.addEventListener("click", () => closeModal("prefill-modal"));
+      document.getElementById("apply-prefill-btn")?.addEventListener("click", handleApplyPrefill);
+    });
+
+    function syncCertificateDisplay() {
+      const getVal = (id) => document.getElementById(id)?.value || "—";
+
+      document.getElementById("disp-sl-no").textContent = getVal("form-sl-no");
+      document.getElementById("disp-cert-date").textContent = formatDate(document.getElementById("form-cert-date")?.value);
+      document.getElementById("disp-marriage-date").textContent = formatDate(document.getElementById("form-marriage-date")?.value);
+
+      document.getElementById("disp-groom-name").textContent = getVal("form-groom-name");
+      document.getElementById("disp-groom-age").textContent = getVal("form-groom-age");
+      document.getElementById("disp-groom-father").textContent = getVal("form-groom-father");
+      document.getElementById("disp-groom-residence").textContent = getVal("form-groom-residence");
+
+      document.getElementById("disp-bride-name").textContent = getVal("form-bride-name");
+      document.getElementById("disp-bride-age").textContent = getVal("form-bride-age");
+      document.getElementById("disp-bride-father").textContent = getVal("form-bride-father");
+      document.getElementById("disp-bride-residence").textContent = getVal("form-bride-residence");
+    }
+
+    function openPrefillModal() {
+      const selector = document.getElementById("booking-selector");
+      const bookings = dbStore.get("bookings").filter(b => b.status === "Confirmed" || b.status === "Completed");
+
+      if (bookings.length === 0) {
+        selector.innerHTML = `<option value="">No confirmed bookings found</option>`;
+      } else {
+        selector.innerHTML = bookings.map(b => `
+          <option value="${b.id}">#${b.bookingNo} - ${b.customerName} (${formatDate(b.reservationDate)})</option>
+        `).join("");
+      }
+
+      openModal("prefill-modal");
+    }
+
+    function handleApplyPrefill() {
+      const bookingId = document.getElementById("booking-selector")?.value;
+      if (!bookingId) return;
+
+      const booking = dbStore.get("bookings").find(b => b.id === bookingId);
+      if (booking) {
+        document.getElementById("form-marriage-date").value = booking.reservationDate;
+        
+        // Parse event description for names if structured (e.g. "Marriage & Reception - Rahul & Anjali")
+        if (booking.eventDesc && booking.eventDesc.includes("&")) {
+          const parts = booking.eventDesc.split("-");
+          const namesPart = parts.length > 1 ? parts[1] : parts[0];
+          const names = namesPart.split("&");
+          if (names.length >= 2) {
+            document.getElementById("form-groom-name").value = names[0].trim();
+            document.getElementById("form-bride-name").value = names[1].trim();
+          }
+        } else {
+          document.getElementById("form-groom-name").value = booking.customerName;
+        }
+
+        document.getElementById("form-groom-residence").value = booking.address || "";
+        syncCertificateDisplay();
+        showToast(`Pre-filled details from Booking #${booking.bookingNo}`);
+      }
+
+      closeModal("prefill-modal");
+    }
+  </script>
+</body>
+</html>

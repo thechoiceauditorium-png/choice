@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phone Directory & Vendors | The Choice Auditorium</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/supabase.min.js"></script>
+</head>
+<body>
+  <div id="header-mount"></div>
+
+  <main class="main-container">
+    <div class="page-header">
+      <div class="page-title">
+        <h2>Team Directory & Emergency Contacts</h2>
+        <span class="page-title-badge">Click-to-Call & Vendor List</span>
+      </div>
+      <button class="btn btn-primary btn-sm" id="new-contact-btn">+ Add Vendor / Emergency Contact</button>
+    </div>
+
+    <!-- Core Team Cards -->
+    <div style="margin-bottom: 2rem;">
+      <h3 style="font-size: 1.1rem; margin-bottom: 1rem; color: var(--brand-red);">Core Management & Operations Team</h3>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem;" id="core-team-container">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+
+    <!-- Vendors & Emergency Contacts Table -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Vendors, Utilities & Emergency Contacts</h3>
+        <input type="text" id="dir-search" class="form-control" placeholder="Search vendor, plumber, electrician..." style="max-width: 250px;">
+      </div>
+      <div class="card-body" style="padding: 0;">
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Contact Name</th>
+                <th>Service / Role</th>
+                <th>Category</th>
+                <th>Phone Number</th>
+                <th>Notes / Availability</th>
+                <th class="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="directory-table-tbody">
+              <!-- Injected via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal: Add / Edit Vendor Contact -->
+  <div class="modal-backdrop" id="contact-modal">
+    <div class="modal-card" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 id="contact-modal-title">Vendor / Emergency Contact</h3>
+        <button class="btn-icon" id="close-contact-modal-btn">X</button>
+      </div>
+      <div class="modal-body">
+        <form id="contact-form">
+          <input type="hidden" id="contact-id">
+
+          <div class="form-group">
+            <label class="form-label" for="contact-name">Name / Organisation *</label>
+            <input type="text" id="contact-name" class="form-control" placeholder="e.g. Suresh (Electrician)" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-col">
+              <label class="form-label" for="contact-role">Service / Role *</label>
+              <input type="text" id="contact-role" class="form-control" placeholder="e.g. Electrician / Plumber" required>
+            </div>
+            <div class="form-col">
+              <label class="form-label" for="contact-category">Category *</label>
+              <select id="contact-category" class="form-control" required>
+                <option value="Maintenance">Maintenance</option>
+                <option value="Emergency">Emergency Services</option>
+                <option value="Generator">Generator</option>
+                <option value="Utilities">Utilities (KSEB/Water)</option>
+                <option value="Sanitation">Sanitation</option>
+                <option value="Government">Government / Local Body</option>
+                <option value="Catering">Catering / Decoration</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="contact-phone">Phone Number *</label>
+            <input type="text" id="contact-phone" class="form-control" placeholder="Primary phone number" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="contact-notes">Notes / Special Instructions</label>
+            <input type="text" id="contact-notes" class="form-control" placeholder="Working hours, alternate number, etc.">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="cancel-contact-modal-btn">Cancel</button>
+        <button type="button" class="btn btn-primary" id="save-contact-btn">Save Contact</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-mount"></div>
+
+  <script type="module" src="js/directory.js"></script>
+</body>
+</html>
