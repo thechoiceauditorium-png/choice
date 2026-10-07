@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QR Code — pineapplelabs.co.in</title>
+  <title>QR Code — The Choice Auditorium</title>
   <link rel="stylesheet" href="css/styles.css">
   <style>
     .qr-page-container {
@@ -32,23 +32,22 @@
       font-weight: 700;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: #9E1B22;
+      color: var(--brand-red, #EE1E25);
       background: #FDE8E9;
       padding: 0.25rem 0.75rem;
       border-radius: 999px;
       margin-bottom: 0.85rem;
     }
     .qr-title {
-      font-size: 1.5rem;
+      font-size: 1.4rem;
       font-weight: 800;
       color: #1A1A1A;
       margin: 0 0 0.35rem;
     }
     .qr-subtitle {
-      font-size: 0.9rem;
+      font-size: 0.88rem;
       color: #666666;
-      margin: 0 0 1.75rem;
-      word-break: break-all;
+      margin: 0 0 1.5rem;
     }
     .qr-box-wrapper {
       background: #FFFFFF;
@@ -121,22 +120,22 @@
 <body>
   <div class="qr-page-container">
     <div class="qr-card">
-      <span class="qr-brand-tag">Verified Destination</span>
-      <h1 class="qr-title">pineapplelabs.co.in</h1>
-      <p class="qr-subtitle">Scan using smartphone camera</p>
+      <span class="qr-brand-tag">Auditorium Official</span>
+      <h1 class="qr-title">The Choice Auditorium</h1>
+      <p class="qr-subtitle">Scan to visit official portal</p>
 
       <div class="qr-box-wrapper">
         <div id="qrcode"></div>
       </div>
 
       <div class="qr-meta-box">
-        <span class="qr-meta-url" id="target-url-text">https://pineapplelabs.co.in</span>
+        <span class="qr-meta-url" id="target-url-text">https://thechoiceauditorium.com</span>
         <button type="button" class="btn btn-sm btn-secondary" id="copy-url-btn" style="padding: 0.25rem 0.55rem; font-size: 0.75rem;">Copy</button>
       </div>
 
       <div class="qr-btn-group">
         <div class="qr-btn-row">
-          <a href="https://pineapplelabs.co.in" target="_blank" rel="noopener noreferrer" class="btn btn-primary">Visit Site</a>
+          <a href="https://thechoiceauditorium.com" target="_blank" rel="noopener noreferrer" class="btn btn-primary">Visit Site</a>
           <button type="button" class="btn btn-secondary" id="download-qr-btn">Download PNG</button>
         </div>
         <button type="button" class="btn btn-outline btn-sm" id="print-qr-btn">Print QR Code</button>
@@ -148,7 +147,7 @@
 
   <script src="js/qrcode.min.js"></script>
   <script>
-    const targetUrl = "https://pineapplelabs.co.in";
+    const targetUrl = "https://thechoiceauditorium.com";
     const qrContainer = document.getElementById("qrcode");
 
     // Initialize local QR code renderer
@@ -189,7 +188,7 @@
 
       const a = document.createElement("a");
       a.href = dataUrl;
-      a.download = "pineapplelabs-qr-code.png";
+      a.download = "choice-auditorium-qr.png";
       document.body.appendChild(a);
       a.click();
       a.remove();

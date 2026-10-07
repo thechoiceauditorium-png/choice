@@ -457,8 +457,7 @@ function handleSaveBooking() {
     grandTotal,
     advanceReceived,
     balanceAmount,
-    balanceDueDate,
-    updatedAt: new Date().toISOString()
+    balanceDueDate
   };
 
   if (currentId) {

@@ -39,6 +39,68 @@ export async function loadEnv() {
   return envConfig;
 }
 
+// Strict Supabase PostgreSQL table schema mapping to prevent PGRST204 errors
+export const TABLE_COLUMNS = {
+  bookings: [
+    "id", "bookingNo", "customerName", "address", "phone1", "phone2",
+    "reference", "eventDesc", "reservationDate", "fromDateTime", "toDateTime",
+    "status", "lineItems", "totalAmount", "serviceTax", "grandTotal",
+    "advanceReceived", "balanceAmount", "balanceDueDate", "signature", "createdAt"
+  ],
+  ledger: [
+    "id", "date", "type", "category", "amount", "description",
+    "loggedBy", "bookingId", "createdAt"
+  ],
+  compliance: [
+    "id", "title", "cycle", "dueDate", "recurrence", "status",
+    "leadDays", "responsible", "notes", "completedDate", "completedBy", "createdAt"
+  ],
+  compliance_history: [
+    "id", "complianceId", "title", "cycle", "completedDate",
+    "completedBy", "refNo", "amountPaid", "notes", "createdAt"
+  ],
+  checklists: [
+    "id", "type", "title", "bookingId", "bookingNo", "eventDate",
+    "period", "items", "status", "createdAt"
+  ],
+  checklist_templates: [
+    "id", "templates", "updatedAt"
+  ],
+  attendance: [
+    "id", "date", "workerId", "workerName", "status", "note",
+    "markedBy", "markedAt", "approvalStatus", "approvedBy", "approvedAt", "createdAt"
+  ],
+  directory: [
+    "id", "name", "role", "phone", "category", "notes", "createdAt"
+  ],
+  notifications: [
+    "id", "title", "message", "type", "time", "read", "createdAt"
+  ],
+  team_users: [
+    "id", "name", "role", "title", "phone", "email", "avatar", "createdAt"
+  ]
+};
+
+/**
+ * Filter record properties to only valid PostgreSQL table columns.
+ */
+export function sanitizeForSupabase(tableName, record) {
+  if (!record || typeof record !== "object") return record;
+  const validCols = TABLE_COLUMNS[tableName];
+  if (!validCols) return record;
+
+  const sanitized = {};
+  for (const col of validCols) {
+    if (col in record) {
+      sanitized[col] = record[col];
+    }
+  }
+  if (!sanitized.id && record.id) {
+    sanitized.id = record.id;
+  }
+  return sanitized;
+}
+
 // Standard Operational Checklist Templates
 export const DEFAULT_CHECKLIST_TEMPLATES = {
   beforeFunction: [
@@ -95,6 +157,109 @@ export const DEFAULT_CHECKLIST_TEMPLATES = {
     "Maintenance logbook updated with all findings"
   ]
 };
+
+// Default Statutory Obligations for The Choice Auditorium
+export const DEFAULT_COMPLIANCE_ITEMS = [
+  {
+    id: "comp-panchayath-oct-mar",
+    title: "Panchayath Tax (October–March cycle)",
+    cycle: "October–March",
+    dueDate: "2026-11-30",
+    recurrence: "Half-yearly",
+    status: "Upcoming",
+    leadDays: 15,
+    responsible: "Elby Abin",
+    notes: "Panchayath local body tax assessment & payment"
+  },
+  {
+    id: "comp-panchayath-apr-sep",
+    title: "Panchayath Tax (April–September cycle)",
+    cycle: "April–September",
+    dueDate: "2027-05-31",
+    recurrence: "Half-yearly",
+    status: "Upcoming",
+    leadDays: 15,
+    responsible: "Elby Abin",
+    notes: "Panchayath local body tax assessment & payment"
+  },
+  {
+    id: "comp-fire-safety",
+    title: "Fire and Safety Licence Renewal",
+    cycle: "Annual",
+    dueDate: "2027-03-31",
+    recurrence: "Annual",
+    status: "Upcoming",
+    leadDays: 30,
+    responsible: "Gopinathan P",
+    notes: "Kerala Fire & Rescue Services auditorium inspection & certificate"
+  },
+  {
+    id: "comp-electrical-renewal",
+    title: "Electrical Directorate Renewal Fees",
+    cycle: "Annual",
+    dueDate: "2027-04-30",
+    recurrence: "Annual",
+    status: "Upcoming",
+    leadDays: 20,
+    responsible: "Vibin Varghese K",
+    notes: "Electrical Inspectorate annual inspection & safety certificate"
+  },
+  {
+    id: "comp-fire-theft-ins",
+    title: "Fire and Theft Insurance Policy Renewal",
+    cycle: "Annual",
+    dueDate: "2027-06-30",
+    recurrence: "Annual",
+    status: "Upcoming",
+    leadDays: 30,
+    responsible: "Abin Varghese K",
+    notes: "Comprehensive building, machinery and public liability coverage"
+  },
+  {
+    id: "comp-gst-return",
+    title: "GST Return Filing",
+    cycle: "Monthly",
+    dueDate: "2026-10-20",
+    recurrence: "Monthly",
+    status: "Upcoming",
+    leadDays: 10,
+    responsible: "Elby Abin",
+    notes: "GSTR-1 and GSTR-3B monthly filing"
+  },
+  {
+    id: "comp-bank-loan-emi",
+    title: "Bank Loan EMI / Monthly Debt Servicing",
+    cycle: "Monthly",
+    dueDate: "2026-10-10",
+    recurrence: "Monthly",
+    status: "Upcoming",
+    leadDays: 5,
+    responsible: "Elby Abin",
+    notes: "Auditorium term loan instalment payment"
+  },
+  {
+    id: "comp-revenue-tax",
+    title: "Revenue Tax / Land Tax",
+    cycle: "Annual",
+    dueDate: "2027-03-15",
+    recurrence: "Annual",
+    status: "Upcoming",
+    leadDays: 15,
+    responsible: "Abin Varghese K",
+    notes: "Village office land revenue tax receipt"
+  },
+  {
+    id: "comp-prof-tax",
+    title: "Professional Tax",
+    cycle: "Half-yearly",
+    dueDate: "2026-11-30",
+    recurrence: "Half-yearly",
+    status: "Upcoming",
+    leadDays: 15,
+    responsible: "Elby Abin",
+    notes: "Panchayath staff professional tax payment"
+  }
+];
 
 // Broadcast channel for multi-tab sync
 const broadcastChannel = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("choice_auditorium_sync") : null;
@@ -180,6 +345,18 @@ export function isSupabaseConfigured() {
   );
 }
 
+export async function testSupabaseConnection() {
+  const sb = await getSupabase();
+  if (!sb) return { success: false, error: "Supabase not configured" };
+  try {
+    const { data, error } = await sb.from("team_users").select("id").limit(1);
+    if (error) return { success: false, error: error.message };
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
 /**
  * Universal Data Store with Supabase Postgres & Realtime Backend
  */
@@ -202,9 +379,6 @@ class ChoiceDataStore {
   }
 
   initStorage() {
-    // Purge any lingering mock/seed data from localStorage
-    this.purgeLegacyMocks();
-
     const collections = [
       "users",
       "bookings",
@@ -226,32 +400,6 @@ class ChoiceDataStore {
     if (!localStorage.getItem("choice_checklist_templates")) {
       localStorage.setItem("choice_checklist_templates", JSON.stringify(DEFAULT_CHECKLIST_TEMPLATES));
     }
-  }
-
-  purgeLegacyMocks() {
-    const mockIdPrefixes = ["bk-100", "led-", "comp-", "dir-", "notif-", "chk-inst-", "att-gp-", "att-sj-"];
-    const collections = [
-      "bookings",
-      "ledger",
-      "compliance",
-      "compliance_history",
-      "checklists",
-      "attendance",
-      "directory",
-      "notifications"
-    ];
-
-    collections.forEach(col => {
-      try {
-        const raw = localStorage.getItem(`choice_${col}`);
-        if (raw) {
-          const items = JSON.parse(raw);
-          if (Array.isArray(items) && items.some(i => i && i.id && mockIdPrefixes.some(p => String(i.id).startsWith(p)))) {
-            localStorage.setItem(`choice_${col}`, JSON.stringify([]));
-          }
-        }
-      } catch (e) {}
-    });
   }
 
   async initSupabaseSync() {
@@ -296,6 +444,14 @@ class ChoiceDataStore {
       }
     }
 
+    // Pull checklist templates
+    try {
+      const { data: tplData, error: tplErr } = await sb.from("checklist_templates").select("*").eq("id", "default").maybeSingle();
+      if (!tplErr && tplData && tplData.templates) {
+        localStorage.setItem("choice_checklist_templates", JSON.stringify(tplData.templates));
+      }
+    } catch (err) {}
+
     // Pull team members
     try {
       const { data: teamData, error: teamErr } = await sb.from("team_users").select("*");
@@ -337,7 +493,9 @@ class ChoiceDataStore {
     });
 
     realtimeChannel.subscribe((status) => {
-      console.log("Supabase Realtime Channel Status:", status);
+      if (status === "SUBSCRIBED") {
+        console.log("Choice Supabase Realtime connected successfully.");
+      }
     });
   }
 
@@ -378,19 +536,20 @@ class ChoiceDataStore {
     }
   }
 
-  save(collectionName, items) {
+  save(collectionName, items, syncRemote = true) {
     localStorage.setItem(`choice_${collectionName}`, JSON.stringify(items));
     this.notifySubscribers(collectionName);
     if (broadcastChannel) {
       broadcastChannel.postMessage({ collection: collectionName });
     }
 
-    // Sync to Supabase in background
-    if (isSupabaseConfigured() && Array.isArray(items)) {
+    // Remote sync
+    if (syncRemote && isSupabaseConfigured() && Array.isArray(items)) {
       getSupabase().then(sb => {
         if (sb) {
           const tableName = collectionName === "users" ? "team_users" : collectionName;
-          sb.from(tableName).upsert(items).then(({ error }) => {
+          const sanitizedItems = items.map(i => sanitizeForSupabase(tableName, i));
+          sb.from(tableName).upsert(sanitizedItems).then(({ error }) => {
             if (error) console.warn(`Supabase save error on ${collectionName}:`, error);
           });
         }
@@ -407,14 +566,15 @@ class ChoiceDataStore {
       item.createdAt = new Date().toISOString();
     }
     items.unshift(item);
-    this.save(collectionName, items);
+    this.save(collectionName, items, false);
 
-    // Sync to Supabase in background
+    // Sync individual record to Supabase
     if (isSupabaseConfigured()) {
       getSupabase().then(sb => {
         if (sb) {
           const tableName = collectionName === "users" ? "team_users" : collectionName;
-          sb.from(tableName).upsert([item]).then(({ error }) => {
+          const sanitized = sanitizeForSupabase(tableName, item);
+          sb.from(tableName).upsert([sanitized]).then(({ error }) => {
             if (error) console.warn(`Supabase add error on ${collectionName}:`, error);
           });
         }
@@ -429,14 +589,15 @@ class ChoiceDataStore {
     const index = items.findIndex(i => i.id === id);
     if (index !== -1) {
       items[index] = { ...items[index], ...updates };
-      this.save(collectionName, items);
+      this.save(collectionName, items, false);
 
-      // Sync to Supabase in background
+      // Sync individual update to Supabase
       if (isSupabaseConfigured()) {
         getSupabase().then(sb => {
           if (sb) {
             const tableName = collectionName === "users" ? "team_users" : collectionName;
-            sb.from(tableName).update(updates).eq("id", id).then(({ error }) => {
+            const sanitized = sanitizeForSupabase(tableName, { ...updates, id });
+            sb.from(tableName).update(sanitized).eq("id", id).then(({ error }) => {
               if (error) console.warn(`Supabase update error on ${collectionName}:`, error);
             });
           }
@@ -451,9 +612,9 @@ class ChoiceDataStore {
   delete(collectionName, id) {
     const items = this.get(collectionName);
     const filtered = items.filter(i => i.id !== id);
-    this.save(collectionName, filtered);
+    this.save(collectionName, filtered, false);
 
-    // Sync to Supabase in background
+    // Sync delete to Supabase
     if (isSupabaseConfigured()) {
       getSupabase().then(sb => {
         if (sb) {

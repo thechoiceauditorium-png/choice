@@ -198,7 +198,7 @@ function handleConfirmDone() {
     refNo: refNo || "—",
     amountPaid,
     notes: notes || "Filed on schedule",
-    savedAt: new Date().toISOString()
+    createdAt: new Date().toISOString()
   };
 
   dbStore.add("compliance_history", logEntry);

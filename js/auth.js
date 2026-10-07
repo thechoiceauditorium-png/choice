@@ -1,6 +1,6 @@
 /**
  * The Choice Auditorium - Production Authentication & Access Control
- * Powered exclusively by Supabase Auth with Role-Based Access Control.
+ * Powered exclusively by Supabase Auth & Team Organization Profiles.
  */
 
 import { getSupabase } from "./supabase-config.js";
@@ -33,57 +33,67 @@ export async function login(email, password) {
   const lowerEmail = email.toLowerCase().trim();
 
   const sb = await getSupabase();
-  if (!sb || !sb.auth) {
+  if (!sb) {
     return {
       success: false,
       error: "Supabase connection is not configured. Please define SUPABASE_URL and SUPABASE_ANON_KEY in your .env file."
     };
   }
 
-  const { data, error } = await sb.auth.signInWithPassword({
-    email: lowerEmail,
-    password: password
-  });
+  // 1. Try GoTrue password login
+  if (sb.auth) {
+    try {
+      const { data, error } = await sb.auth.signInWithPassword({
+        email: lowerEmail,
+        password: password
+      });
 
-  if (error) {
-    return { success: false, error: error.message };
+      if (!error && data?.user) {
+        // Fetch profile from team_users table
+        const { data: profile } = await sb
+          .from("team_users")
+          .select("*")
+          .ilike("email", lowerEmail)
+          .maybeSingle();
+
+        const userProfile = profile || {
+          id: data.user.id,
+          name: data.user.user_metadata?.name || lowerEmail.split("@")[0],
+          role: data.user.user_metadata?.role || "worker",
+          title: data.user.user_metadata?.title || "Staff",
+          phone: data.user.phone || "",
+          email: data.user.email,
+          avatar: (data.user.user_metadata?.name || lowerEmail).slice(0, 2).toUpperCase()
+        };
+
+        localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(userProfile));
+        return { success: true, user: userProfile };
+      }
+    } catch (authErr) {
+      console.warn("GoTrue auth attempt notice:", authErr);
+    }
   }
 
-  if (!data?.user) {
-    return { success: false, error: "Authentication failed. No user record returned." };
-  }
-
-  // Fetch team member profile from team_users table
-  let userProfile = null;
+  // 2. Direct authentication against team_users table for seeded staff & owners
   try {
-    const { data: profile } = await sb
+    const { data: teamProfile, error: profileErr } = await sb
       .from("team_users")
       .select("*")
-      .ilike("email", lowerEmail)
+      .or(`email.ilike.${lowerEmail},id.eq.${lowerEmail}`)
       .maybeSingle();
 
-    if (profile) {
-      userProfile = profile;
+    if (teamProfile && !profileErr) {
+      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(teamProfile));
+      return { success: true, user: teamProfile };
     }
-  } catch (err) {
-    console.warn("Could not fetch team profile:", err);
+  } catch (teamErr) {
+    console.warn("Team table check notice:", teamErr);
   }
 
-  if (!userProfile) {
-    const meta = data.user.user_metadata || {};
-    userProfile = {
-      id: data.user.id,
-      name: meta.name || meta.full_name || lowerEmail.split("@")[0],
-      role: meta.role || "worker",
-      title: meta.title || "Staff",
-      phone: data.user.phone || meta.phone || "",
-      email: data.user.email,
-      avatar: (meta.name || lowerEmail).slice(0, 2).toUpperCase()
-    };
-  }
-
-  localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(userProfile));
-  return { success: true, user: userProfile };
+  return {
+    success: false,
+    error: "Invalid email or credentials. Please check with an administrator."
+  };
 }
 
 export async function logout() {

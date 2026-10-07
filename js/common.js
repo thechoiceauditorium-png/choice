@@ -141,6 +141,7 @@ export function renderHeader(activePage = "") {
           <li><a href="checklists.html" class="nav-link ${activePage === 'checklists' ? 'active' : ''}">Checklists</a></li>
           <li><a href="compliance.html" class="nav-link ${activePage === 'compliance' ? 'active' : ''}">Compliance</a></li>
           <li><a href="directory.html" class="nav-link ${activePage === 'directory' ? 'active' : ''}">Directory</a></li>
+          <li><a href="certificate.html" class="nav-link ${activePage === 'certificate' ? 'active' : ''}">Certificate</a></li>
         </ul>
       </nav>
       <!-- Notifications Dropdown -->

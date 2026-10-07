@@ -227,8 +227,7 @@ function handleSaveEntry() {
     amount,
     description,
     bookingId: bookingId || null,
-    loggedBy: user.name,
-    updatedAt: new Date().toISOString()
+    loggedBy: user.name
   };
 
   if (id) {
