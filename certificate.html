@@ -220,7 +220,7 @@
 
   <script type="module">
     import { requireAuth } from "./js/auth.js";
-    import { renderHeader, formatDate, showToast, openModal, closeModal } from "./js/common.js";
+    import { renderHeader, formatDate, showToast, openModal, closeModal, escapeHtml } from "./js/common.js";
     import { dbStore } from "./js/firebase-config.js";
 
     document.addEventListener("DOMContentLoaded", async () => {
@@ -279,7 +279,7 @@
         selector.innerHTML = `<option value="">No confirmed bookings found</option>`;
       } else {
         selector.innerHTML = bookings.map(b => `
-          <option value="${b.id}">#${b.bookingNo} - ${b.customerName} (${formatDate(b.reservationDate)})</option>
+          <option value="${escapeHtml(b.id)}">#${escapeHtml(b.bookingNo || '')} - ${escapeHtml(b.customerName || '')} (${formatDate(b.reservationDate)})</option>
         `).join("");
       }
 

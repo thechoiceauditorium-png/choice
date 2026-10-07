@@ -4,7 +4,7 @@
  */
 
 import { requireAuth, isOwner, isWorker, getCurrentUser } from "./auth.js";
-import { renderHeader, formatDate, formatDateTime, showToast, escapeHtml } from "./common.js";
+import { renderHeader, formatDate, formatDateTime, showToast, escapeHtml, sanitizeTel } from "./common.js";
 import { dbStore } from "./firebase-config.js";
 import { evaluateNotifications } from "./notifications.js";
 
@@ -50,7 +50,7 @@ function checkRolePermissions() {
   if (isWorker()) {
     if (roleBadge) roleBadge.textContent = `${currentUser.name} (My Attendance)`;
     if (notice) {
-      notice.innerHTML = `<span style="color: #1976D2; font-weight: 600;">Worker Portal: ${currentUser.name} (${currentUser.title})</span> · Record your status and duties for owner approval.`;
+      notice.innerHTML = `<span style="color: #1976D2; font-weight: 600;">Worker Portal: ${escapeHtml(currentUser.name)} (${escapeHtml(currentUser.title || '')})</span> · Record your status and duties for owner approval.`;
     }
     if (hint) {
       hint.textContent = "Mark your status, add duty notes, and submit for owner sign-off.";
@@ -58,7 +58,7 @@ function checkRolePermissions() {
   } else if (isOwner()) {
     if (roleBadge) roleBadge.textContent = "All Staff (Owner View)";
     if (notice) {
-      notice.innerHTML = `<span style="color: #2E7D32; font-weight: 600;">Owner Portal: ${currentUser.name} (${currentUser.title})</span> · Review staff submissions, verify duty notes, and approve logs.`;
+      notice.innerHTML = `<span style="color: #2E7D32; font-weight: 600;">Owner Portal: ${escapeHtml(currentUser.name)} (${escapeHtml(currentUser.title || '')})</span> · Review staff submissions, verify duty notes, and approve logs.`;
     }
     if (hint) {
       hint.textContent = "Review worker submissions and click Approve to confirm attendance.";
@@ -124,7 +124,7 @@ function loadMarkingForSelectedDate(attendance = []) {
     if (isThisWorker) {
       const btnLabel = existing ? (approvalStatus === "Approved" ? "Update & Resubmit" : "Save Changes") : "Submit Attendance for Approval";
       actionBtnHtml = `
-        <button class="btn btn-primary btn-sm" style="width: 100%; margin-top: 0.75rem;" onclick="window.choiceAttendance.submitAttendance('${escapeHtml(worker.id)}')">
+        <button class="btn btn-primary btn-sm att-action-btn" style="width: 100%; margin-top: 0.75rem;" data-action="submit" data-worker-id="${escapeHtml(worker.id)}">
           ${btnLabel}
         </button>
       `;
@@ -132,10 +132,10 @@ function loadMarkingForSelectedDate(attendance = []) {
       if (existing && approvalStatus === "Pending Approval") {
         actionBtnHtml = `
           <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem; flex-wrap: wrap;">
-            <button class="btn btn-success btn-sm" style="flex: 1;" onclick="window.choiceAttendance.approveAttendance('${escapeHtml(worker.id)}')">
+            <button class="btn btn-success btn-sm att-action-btn" style="flex: 1;" data-action="approve" data-worker-id="${escapeHtml(worker.id)}">
               Approve Attendance
             </button>
-            <button class="btn btn-outline btn-sm" style="flex: 1;" onclick="window.choiceAttendance.saveAndApproveAttendance('${escapeHtml(worker.id)}')">
+            <button class="btn btn-outline btn-sm att-action-btn" style="flex: 1;" data-action="save-approve" data-worker-id="${escapeHtml(worker.id)}">
               Save Changes & Approve
             </button>
           </div>
@@ -144,14 +144,14 @@ function loadMarkingForSelectedDate(attendance = []) {
         actionBtnHtml = `
           <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.75rem;">
             <span style="font-size: 0.8rem; color: #2E7D32; font-weight: 600;">Verified and Confirmed</span>
-            <button class="btn btn-outline btn-sm" onclick="window.choiceAttendance.saveAndApproveAttendance('${escapeHtml(worker.id)}')">
+            <button class="btn btn-outline btn-sm att-action-btn" data-action="save-approve" data-worker-id="${escapeHtml(worker.id)}">
               Edit & Re-Approve
             </button>
           </div>
         `;
       } else {
         actionBtnHtml = `
-          <button class="btn btn-outline btn-sm" style="width: 100%; margin-top: 0.75rem;" onclick="window.choiceAttendance.saveAndApproveAttendance('${escapeHtml(worker.id)}')">
+          <button class="btn btn-outline btn-sm att-action-btn" style="width: 100%; margin-top: 0.75rem;" data-action="save-approve" data-worker-id="${escapeHtml(worker.id)}">
             Mark on Worker's Behalf & Approve
           </button>
         `;
@@ -164,7 +164,7 @@ function loadMarkingForSelectedDate(attendance = []) {
           <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border); padding-bottom: 0.6rem;">
             <div>
               <h4 style="font-size: 1.05rem; margin-bottom: 2px;">${escapeHtml(worker.name || '')}</h4>
-              <div style="font-size: 0.78rem; color: #777;">${escapeHtml(worker.title || '')} · <a href="tel:${escapeHtml(worker.phone || '')}">${escapeHtml(worker.phone || '')}</a></div>
+              <div style="font-size: 0.78rem; color: #777;">${escapeHtml(worker.title || '')} · <a href="tel:${sanitizeTel(worker.phone)}">${escapeHtml(worker.phone || '')}</a></div>
             </div>
             <div>
               ${badgeHtml}
@@ -205,6 +205,17 @@ function loadMarkingForSelectedDate(attendance = []) {
       </div>
     `;
   }).join("");
+
+  // Attach button click listeners safely without inline onclick
+  container.querySelectorAll(".att-action-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const action = btn.dataset.action;
+      const workerId = btn.dataset.workerId;
+      if (action === "submit") submitAttendance(workerId);
+      else if (action === "approve") approveAttendance(workerId);
+      else if (action === "save-approve") saveAndApproveAttendance(workerId);
+    });
+  });
 }
 
 function submitAttendance(workerId) {
@@ -437,7 +448,7 @@ function renderMonthlyAttendance(attendance = []) {
     let actionCell = `<span style="font-size: 0.78rem; color: #999;">${a.approvalStatus === 'Approved' ? 'Confirmed' : '—'}</span>`;
     if (userIsOwner && isPending) {
       actionCell = `
-        <button class="btn btn-sm btn-success" onclick="window.choiceAttendance.approveByRecordId('${escapeHtml(a.id)}')">
+        <button class="btn btn-sm btn-success att-history-approve-btn" data-record-id="${escapeHtml(a.id)}">
           Approve
         </button>
       `;
@@ -459,4 +470,10 @@ function renderMonthlyAttendance(attendance = []) {
       </tr>
     `;
   }).join("");
+
+  tbody.querySelectorAll(".att-history-approve-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      approveByRecordId(btn.dataset.recordId);
+    });
+  });
 }

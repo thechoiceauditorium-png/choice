@@ -156,7 +156,7 @@ function renderActiveChecklist(checklists = []) {
         <tbody>
           ${current.items.map((item, idx) => `
             <tr style="${item.done ? 'background: #FAFCFA;' : ''}">
-              <td class="text-center font-weight-bold">${item.sl || idx + 1}</td>
+              <td class="text-center font-weight-bold">${escapeHtml(String(item.sl || idx + 1))}</td>
               <td style="font-size: 0.88rem; font-weight: ${item.done ? '500' : '600'}; color: ${item.done ? '#555' : '#1A1A1A'};">
                 ${escapeHtml(item.text || '')}
               </td>
@@ -394,7 +394,7 @@ function openNewChecklistModal() {
     bkSelect.innerHTML = `<option value="">No confirmed bookings available</option>`;
   } else {
     bkSelect.innerHTML = bookings.map(b => `
-      <option value="${b.id}">#${escapeHtml(b.bookingNo || '')} - ${escapeHtml(b.customerName || '')} (${formatDate(b.reservationDate)})</option>
+      <option value="${escapeHtml(b.id)}">#${escapeHtml(b.bookingNo || '')} - ${escapeHtml(b.customerName || '')} (${formatDate(b.reservationDate)})</option>
     `).join("");
   }
 
@@ -493,7 +493,7 @@ function loadTemplateItemsToEdit() {
   container.innerHTML = items.map((text, i) => `
     <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
       <span style="width: 25px; font-weight: bold; font-size: 0.85rem; color: #777;">${i + 1}.</span>
-      <input type="text" class="form-control template-item-input" value="${text.replace(/"/g, '&quot;')}" style="flex: 1;">
+      <input type="text" class="form-control template-item-input" value="${escapeHtml(text)}" style="flex: 1;">
       <button type="button" class="btn btn-sm btn-outline del-tmpl-row" style="color: #C62828;">Del</button>
     </div>
   `).join("") + `

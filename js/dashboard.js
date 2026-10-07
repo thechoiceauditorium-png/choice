@@ -3,7 +3,7 @@
  */
 
 import { requireAuth, isOwner, getCurrentUser } from "./auth.js";
-import { renderHeader, formatINR, formatDate, formatDateTime, showToast, escapeHtml } from "./common.js";
+import { renderHeader, formatINR, formatDate, formatDateTime, showToast, escapeHtml, sanitizeTel, sanitizeUrl } from "./common.js";
 import { dbStore } from "./firebase-config.js";
 import { evaluateNotifications } from "./notifications.js";
 
@@ -48,21 +48,21 @@ function renderBookingsSection(bookings = []) {
     const statusClass = b.status === 'Confirmed' ? 'badge-confirmed' : b.status === 'Enquiry' ? 'badge-enquiry' : 'badge-completed';
     return `
       <tr>
-        <td><strong>#${b.bookingNo}</strong></td>
+        <td><strong>#${escapeHtml(b.bookingNo || '')}</strong></td>
         <td>
           <div><strong>${formatDate(b.reservationDate)}</strong></div>
-          <div style="font-size: 0.75rem; color: #666;">${b.fromDateTime ? b.fromDateTime.split('T')[1] : ''} - ${b.toDateTime ? b.toDateTime.split('T')[1] : ''}</div>
+          <div style="font-size: 0.75rem; color: #666;">${b.fromDateTime ? escapeHtml(b.fromDateTime.split('T')[1] || '') : ''} - ${b.toDateTime ? escapeHtml(b.toDateTime.split('T')[1] || '') : ''}</div>
         </td>
         <td>
-          <div style="font-weight: 600;">${escapeHtml(b.customerName)}</div>
+          <div style="font-weight: 600;">${escapeHtml(b.customerName || '')}</div>
           <div style="font-size: 0.75rem; color: #666;">${escapeHtml(b.eventDesc || 'Wedding & Reception')}</div>
         </td>
         <td>
-          <div style="font-size: 0.82rem;"><a href="tel:${escapeHtml(b.phone1)}">${escapeHtml(b.phone1)}</a></div>
-          ${b.phone2 ? `<div style="font-size: 0.75rem; color: #888;"><a href="tel:${escapeHtml(b.phone2)}">${escapeHtml(b.phone2)}</a></div>` : ''}
+          <div style="font-size: 0.82rem;"><a href="tel:${sanitizeTel(b.phone1)}">${escapeHtml(b.phone1 || '')}</a></div>
+          ${b.phone2 ? `<div style="font-size: 0.75rem; color: #888;"><a href="tel:${sanitizeTel(b.phone2)}">${escapeHtml(b.phone2 || '')}</a></div>` : ''}
         </td>
         <td>
-          <span class="badge ${statusClass}">${b.status}</span>
+          <span class="badge ${statusClass}">${escapeHtml(b.status || '')}</span>
         </td>
         <td>
           <div style="font-size: 0.85rem; font-weight: bold;">${formatINR(b.grandTotal)}</div>
@@ -138,22 +138,6 @@ function renderAttendanceWidget(attendance = []) {
     return;
   }
 
-  // Expose quick approve helper
-  window.choiceDashboardApproveAtt = (recordId, workerName) => {
-    if (!isOwner()) return;
-    const allRecords = dbStore.get("attendance");
-    const record = allRecords.find(a => a.id === recordId);
-    if (!record) return;
-
-    record.approvalStatus = "Approved";
-    record.approvedBy = currentUser.name;
-    record.approvedAt = new Date().toISOString();
-
-    dbStore.save("attendance", allRecords);
-    evaluateNotifications();
-    showToast(`Attendance approved for ${workerName}.`, "success");
-  };
-
   widget.innerHTML = workers.map(w => {
     const record = attendance.find(a => a.date === todayStr && a.workerId === w.id);
     let statusBadge = `<span class="badge badge-unmarked">Not Submitted</span>`;
@@ -171,7 +155,7 @@ function renderAttendanceWidget(attendance = []) {
         approvalBadge = `<span class="badge badge-pending" style="font-size: 0.7rem;">Pending Approval</span>`;
         if (userIsOwner) {
           approveBtn = `
-            <button class="btn btn-sm btn-success" style="padding: 0.2rem 0.55rem; font-size: 0.72rem; margin-top: 4px;" onclick="window.choiceDashboardApproveAtt('${record.id}', '${w.name}')">
+            <button class="btn btn-sm btn-success quick-approve-att-btn" style="padding: 0.2rem 0.55rem; font-size: 0.72rem; margin-top: 4px;" data-record-id="${escapeHtml(record.id)}" data-worker-name="${escapeHtml(w.name || '')}">
               Approve
             </button>
           `;
@@ -182,9 +166,9 @@ function renderAttendanceWidget(attendance = []) {
     return `
       <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.65rem 0; border-bottom: 1px solid #EEE;">
         <div>
-          <div style="font-weight: 600; font-size: 0.88rem;">${w.name}</div>
-          <div style="font-size: 0.75rem; color: #777;">${w.title} · <a href="tel:${w.phone}">${w.phone}</a></div>
-          ${record && record.note ? `<div style="font-size: 0.72rem; color: #888; font-style: italic;">"${record.note}"</div>` : ''}
+          <div style="font-weight: 600; font-size: 0.88rem;">${escapeHtml(w.name || '')}</div>
+          <div style="font-size: 0.75rem; color: #777;">${escapeHtml(w.title || '')} · <a href="tel:${sanitizeTel(w.phone)}">${escapeHtml(w.phone || '')}</a></div>
+          ${record && record.note ? `<div style="font-size: 0.72rem; color: #888; font-style: italic;">"${escapeHtml(record.note)}"</div>` : ''}
         </div>
         <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 3px;">
           <div style="display: flex; gap: 0.35rem; align-items: center;">
@@ -196,6 +180,26 @@ function renderAttendanceWidget(attendance = []) {
       </div>
     `;
   }).join("");
+
+  // Attach quick approve button click listeners safely without inline onclick
+  widget.querySelectorAll(".quick-approve-att-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      if (!isOwner()) return;
+      const recordId = btn.dataset.recordId;
+      const workerName = btn.dataset.workerName;
+      const allRecords = dbStore.get("attendance");
+      const record = allRecords.find(a => a.id === recordId);
+      if (!record) return;
+
+      record.approvalStatus = "Approved";
+      record.approvedBy = currentUser.name;
+      record.approvedAt = new Date().toISOString();
+
+      dbStore.save("attendance", allRecords);
+      evaluateNotifications();
+      showToast(`Attendance approved for ${workerName}.`, "success");
+    });
+  });
 }
 
 function renderChecklistsWidget(checklists = []) {
@@ -210,20 +214,20 @@ function renderChecklistsWidget(checklists = []) {
   widget.innerHTML = checklists.slice(0, 3).map(chk => {
     const doneCount = chk.items.filter(i => i.done).length;
     const totalCount = chk.items.length;
-    const pct = Math.round((doneCount / totalCount) * 100) || 0;
+    const pct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
 
     return `
       <div style="padding: 0.75rem 0; border-bottom: 1px solid #EEE;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-          <div style="font-weight: 600; font-size: 0.85rem;">${chk.title}</div>
+          <div style="font-weight: 600; font-size: 0.85rem;">${escapeHtml(chk.title || '')}</div>
           <span style="font-size: 0.75rem; font-weight: bold; color: ${pct === 100 ? '#2E7D32' : '#E8A400'};">${doneCount}/${totalCount} (${pct}%)</span>
         </div>
         <div style="background: #EEE; border-radius: 4px; height: 6px; overflow: hidden; margin-bottom: 6px;">
           <div style="background: ${pct === 100 ? '#2E7D32' : 'var(--brand-red)'}; width: ${pct}%; height: 100%;"></div>
         </div>
         <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: #777;">
-          <span>Status: ${chk.status}</span>
-          <a href="checklists.html?id=${chk.id}" style="color: var(--brand-red); font-weight: bold;">Open Checklist →</a>
+          <span>Status: ${escapeHtml(chk.status || '')}</span>
+          <a href="checklists.html?id=${encodeURIComponent(chk.id || '')}" style="color: var(--brand-red); font-weight: bold;">Open Checklist →</a>
         </div>
       </div>
     `;
@@ -246,10 +250,10 @@ function renderComplianceWidget(compliance = []) {
   widget.innerHTML = dueSoon.map(c => `
     <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.65rem 0; border-bottom: 1px solid #EEE;">
       <div>
-        <div style="font-weight: 600; font-size: 0.85rem;">${c.title}</div>
-        <div style="font-size: 0.75rem; color: #777;">Due: <strong>${formatDate(c.dueDate)}</strong> · Resp: ${c.responsible}</div>
+        <div style="font-weight: 600; font-size: 0.85rem;">${escapeHtml(c.title || '')}</div>
+        <div style="font-size: 0.75rem; color: #777;">Due: <strong>${formatDate(c.dueDate)}</strong> · Resp: ${escapeHtml(c.responsible || '')}</div>
       </div>
-      <span class="badge ${c.status === 'Due Soon' ? 'badge-enquiry' : 'badge-confirmed'}">${c.status}</span>
+      <span class="badge ${c.status === 'Due Soon' ? 'badge-enquiry' : 'badge-confirmed'}">${escapeHtml(c.status || '')}</span>
     </div>
   `).join("");
 }

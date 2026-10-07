@@ -301,8 +301,8 @@ function renderLedgerTable(ledger = []) {
         <td style="font-size: 0.82rem; color: #666;">${escapeHtml(item.loggedBy || 'Staff')}</td>
         <td style="text-align: right; white-space: nowrap;">
           <div style="display: inline-flex; gap: 6px; justify-content: flex-end; align-items: center;">
-            <button class="btn btn-sm btn-secondary edit-entry-btn" data-id="${item.id}" style="padding: 0.3rem 0.65rem; font-size: 0.78rem;">Edit</button>
-            ${isOwner() ? `<button class="btn btn-sm btn-danger del-entry-btn" data-id="${item.id}" style="padding: 0.3rem 0.65rem; font-size: 0.78rem;">Delete</button>` : ''}
+            <button class="btn btn-sm btn-secondary edit-entry-btn" data-id="${escapeHtml(item.id)}" style="padding: 0.3rem 0.65rem; font-size: 0.78rem;">Edit</button>
+            ${isOwner() ? `<button class="btn btn-sm btn-danger del-entry-btn" data-id="${escapeHtml(item.id)}" style="padding: 0.3rem 0.65rem; font-size: 0.78rem;">Delete</button>` : ''}
           </div>
         </td>
       </tr>

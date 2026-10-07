@@ -22,18 +22,42 @@ export function escapeHtml(str) {
     .replace(/'/g, "&#039;");
 }
 
+// XSS Sanitizer: Block javascript:, data:, and vbscript: URI schemes
+export function sanitizeUrl(url) {
+  if (!url) return "#";
+  const trimmed = String(url).trim();
+  if (/^(javascript|data|vbscript):/i.test(trimmed)) {
+    return "#";
+  }
+  return escapeHtml(trimmed);
+}
+
+// XSS Sanitizer: Clean phone numbers for tel: links
+export function sanitizeTel(phone) {
+  if (!phone) return "";
+  const cleaned = String(phone).replace(/[^0-9+ \-()]/g, "");
+  return escapeHtml(cleaned);
+}
+
+// XSS Sanitizer: Clean emails for mailto: links
+export function sanitizeEmail(email) {
+  if (!email) return "";
+  const cleaned = String(email).trim().replace(/[^a-zA-Z0-9._%+\-@]/g, "");
+  return escapeHtml(cleaned);
+}
+
 // Format date strings
 export function formatDate(dateStr) {
   if (!dateStr) return "-";
   const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return dateStr;
+  if (isNaN(d.getTime())) return escapeHtml(dateStr);
   return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 }
 
 export function formatDateTime(dateTimeStr) {
   if (!dateTimeStr) return "-";
   const d = new Date(dateTimeStr);
-  if (isNaN(d.getTime())) return dateTimeStr;
+  if (isNaN(d.getTime())) return escapeHtml(dateTimeStr);
   return d.toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "short",
@@ -120,10 +144,10 @@ export function renderHeader(activePage = "") {
         </div>
         <div class="header-actions">
           <div class="user-profile-badge">
-            <div class="user-avatar">${user.avatar || user.name.charAt(0)}</div>
+            <div class="user-avatar">${escapeHtml(user.avatar || (user.name ? user.name.charAt(0) : 'U'))}</div>
             <div>
-              <div style="font-weight: 700; font-size: 0.82rem;">${user.name}</div>
-              <span class="role-tag ${user.role === 'owner' ? 'role-owner' : 'role-worker'}">${user.title} (${user.role})</span>
+              <div style="font-weight: 700; font-size: 0.82rem;">${escapeHtml(user.name || '')}</div>
+              <span class="role-tag ${user.role === 'owner' ? 'role-owner' : 'role-worker'}">${escapeHtml(user.title || '')} (${escapeHtml(user.role || '')})</span>
             </div>
           </div>
           <button class="btn-icon" id="notif-bell-btn" title="Notifications">
@@ -218,9 +242,9 @@ export function updateNotificationUI(notifs = []) {
           ${n.type === 'conflict' ? '!' : n.type === 'booking' ? 'B' : 'C'}
         </div>
         <div class="notif-content">
-          <h5>${n.title}</h5>
-          <p>${n.message}</p>
-          <div class="time">${n.time || 'Just now'}</div>
+          <h5>${escapeHtml(n.title || '')}</h5>
+          <p>${escapeHtml(n.message || '')}</p>
+          <div class="time">${escapeHtml(n.time || 'Just now')}</div>
         </div>
       </li>
     `).join("");
@@ -241,7 +265,7 @@ export function showToast(message, type = "success") {
   toast.className = `toast ${type}`;
   toast.innerHTML = `
     <span style="font-weight: bold; font-size: 0.8rem;">${type === 'success' ? '[OK]' : type === 'warning' ? '[!]' : '[X]'}</span>
-    <div>${message}</div>
+    <div>${escapeHtml(message || '')}</div>
   `;
   container.appendChild(toast);
 

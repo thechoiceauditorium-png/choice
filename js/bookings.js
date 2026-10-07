@@ -3,7 +3,7 @@
  */
 
 import { requireAuth, isOwner } from "./auth.js";
-import { renderHeader, formatINR, formatDate, formatDateTime, numberToWordsINR, showToast, openModal, closeModal, escapeHtml } from "./common.js";
+import { renderHeader, formatINR, formatDate, formatDateTime, numberToWordsINR, showToast, openModal, closeModal, escapeHtml, sanitizeTel } from "./common.js";
 import { dbStore } from "./firebase-config.js";
 import { evaluateNotifications } from "./notifications.js";
 
@@ -204,18 +204,18 @@ function toDatetimeLocal(val) {
 
   tbody.innerHTML = filtered.map(b => `
     <tr>
-      <td><strong>#${b.bookingNo}</strong></td>
+      <td><strong>#${escapeHtml(b.bookingNo || '')}</strong></td>
       <td>
         <div><strong>${formatDate(b.reservationDate)}</strong></div>
-        <div style="font-size: 0.75rem; color: #666;">${b.fromDateTime ? b.fromDateTime.replace('T', ' ').slice(0, 16) : ''} to ${b.toDateTime ? b.toDateTime.replace('T', ' ').slice(0, 16) : ''}</div>
+        <div style="font-size: 0.75rem; color: #666;">${b.fromDateTime ? escapeHtml(b.fromDateTime.replace('T', ' ').slice(0, 16)) : ''} to ${b.toDateTime ? escapeHtml(b.toDateTime.replace('T', ' ').slice(0, 16)) : ''}</div>
       </td>
       <td>
-        <div style="font-weight: 600;">${escapeHtml(b.customerName)}</div>
+        <div style="font-weight: 600;">${escapeHtml(b.customerName || '')}</div>
         <div style="font-size: 0.75rem; color: #777;">${escapeHtml(b.address || '—')}</div>
       </td>
       <td>
-        <div><a href="tel:${escapeHtml(b.phone1)}">${escapeHtml(b.phone1)}</a></div>
-        <div style="font-size: 0.75rem; color: #888;"><a href="tel:${escapeHtml(b.phone2)}">${escapeHtml(b.phone2)}</a></div>
+        <div><a href="tel:${sanitizeTel(b.phone1)}">${escapeHtml(b.phone1 || '')}</a></div>
+        <div style="font-size: 0.75rem; color: #888;"><a href="tel:${sanitizeTel(b.phone2)}">${escapeHtml(b.phone2 || '')}</a></div>
       </td>
       <td style="font-size: 0.8rem; color: #666;">${escapeHtml(b.reference || '—')}</td>
       <td style="font-weight: 700;">${formatINR(b.grandTotal)}</td>
@@ -224,12 +224,12 @@ function toDatetimeLocal(val) {
       </td>
       <td>
         <span class="badge ${b.status === 'Confirmed' ? 'badge-confirmed' : b.status === 'Enquiry' ? 'badge-enquiry' : b.status === 'Completed' ? 'badge-completed' : 'badge-cancelled'}">
-          ${b.status}
+          ${escapeHtml(b.status || '')}
         </span>
       </td>
       <td class="text-right">
-        <button class="btn btn-sm btn-secondary edit-bk-btn" data-id="${b.id}">Edit</button>
-        ${isOwner() ? `<button class="btn btn-sm btn-danger del-bk-btn" data-id="${b.id}" style="padding: 0.2rem 0.4rem;">Delete</button>` : ''}
+        <button class="btn btn-sm btn-secondary edit-bk-btn" data-id="${escapeHtml(b.id)}">Edit</button>
+        ${isOwner() ? `<button class="btn btn-sm btn-danger del-bk-btn" data-id="${escapeHtml(b.id)}" style="padding: 0.2rem 0.4rem;">Delete</button>` : ''}
       </td>
     </tr>
   `).join("");
@@ -427,7 +427,7 @@ function handleSaveBooking() {
     banner.style.color = "var(--danger)";
     banner.innerHTML = `
       <strong>[Conflict] Overlap Conflict Detected!</strong><br>
-      This reservation overlaps with existing Confirmed Booking <strong>#${conflictingBooking.bookingNo} (${conflictingBooking.customerName})</strong><br>
+      This reservation overlaps with existing Confirmed Booking <strong>#${escapeHtml(conflictingBooking.bookingNo || '')} (${escapeHtml(conflictingBooking.customerName || '')})</strong><br>
       Dates: ${formatDateTime(conflictingBooking.fromDateTime)} to ${formatDateTime(conflictingBooking.toDateTime)}.<br>
       <em>Two Confirmed bookings cannot be scheduled simultaneously. Please resolve the time conflict or save as Enquiry.</em>
     `;

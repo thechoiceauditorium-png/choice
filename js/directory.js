@@ -3,7 +3,7 @@
  */
 
 import { requireAuth, isOwner } from "./auth.js";
-import { renderHeader, showToast, openModal, closeModal, escapeHtml } from "./common.js";
+import { renderHeader, showToast, openModal, closeModal, escapeHtml, sanitizeTel, sanitizeEmail } from "./common.js";
 import { dbStore } from "./firebase-config.js";
 import { evaluateNotifications } from "./notifications.js";
 
@@ -51,11 +51,11 @@ function renderCoreTeam() {
       
       <div style="margin-top: 0.75rem; font-size: 0.88rem; line-height: 1.6;">
         <div>
-          Tel: <a href="tel:${escapeHtml(u.phone || '')}" style="font-weight: bold; color: var(--text);">${escapeHtml(u.phone || '—')}</a>
+          Tel: <a href="tel:${sanitizeTel(u.phone)}" style="font-weight: bold; color: var(--text);">${escapeHtml(u.phone || '—')}</a>
         </div>
         ${u.email && u.email !== '—' ? `
           <div style="font-size: 0.8rem; color: #666; word-break: break-all;">
-            Email: <a href="mailto:${escapeHtml(u.email)}">${escapeHtml(u.email)}</a>
+            Email: <a href="mailto:${sanitizeEmail(u.email)}">${escapeHtml(u.email)}</a>
           </div>
         ` : '<div style="font-size: 0.8rem; color: #999;">Phone communication</div>'}
       </div>
@@ -90,12 +90,12 @@ function renderDirectoryTable(directory = []) {
         <span class="badge" style="background: #F0F0F0; color: #333;">${escapeHtml(item.category || '')}</span>
       </td>
       <td>
-        <a href="tel:${escapeHtml(item.phone || '')}" style="font-weight: bold; color: var(--brand-red);">${escapeHtml(item.phone || '')}</a>
+        <a href="tel:${sanitizeTel(item.phone)}" style="font-weight: bold; color: var(--brand-red);">${escapeHtml(item.phone || '')}</a>
       </td>
       <td style="font-size: 0.82rem; color: #666;">${escapeHtml(item.notes || '—')}</td>
       <td class="text-right">
-        <button class="btn btn-sm btn-secondary edit-dir-btn" data-id="${item.id}">Edit</button>
-        ${isOwner() ? `<button class="btn btn-sm btn-danger del-dir-btn" data-id="${item.id}" style="padding: 0.2rem 0.4rem;">Delete</button>` : ''}
+        <button class="btn btn-sm btn-secondary edit-dir-btn" data-id="${escapeHtml(item.id)}">Edit</button>
+        ${isOwner() ? `<button class="btn btn-sm btn-danger del-dir-btn" data-id="${escapeHtml(item.id)}" style="padding: 0.2rem 0.4rem;">Delete</button>` : ''}
       </td>
     </tr>
   `).join("");

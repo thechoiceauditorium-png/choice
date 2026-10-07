@@ -88,7 +88,7 @@ function renderAlertBanner(compliance = []) {
       <div style="font-weight: 700; color: #B78103; margin-bottom: 4px;">Statutory Filings Requiring Attention (${urgent.length})</div>
       <ul style="margin-left: 1.25rem; font-size: 0.85rem; color: #555;">
         ${urgent.map(u => `
-          <li><strong>${u.title}</strong> — Due: <strong>${formatDate(u.dueDate)}</strong> (Assigned: ${u.responsible})</li>
+          <li><strong>${escapeHtml(u.title || '')}</strong> — Due: <strong>${formatDate(u.dueDate)}</strong> (Assigned: ${escapeHtml(u.responsible || '')})</li>
         `).join("")}
       </ul>
     </div>
