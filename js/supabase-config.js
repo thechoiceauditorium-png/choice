@@ -415,7 +415,12 @@ class ChoiceDataStore {
           const tableName = collectionName === "users" ? "team_users" : collectionName;
           const sanitized = sanitizeForSupabase(tableName, item);
           sb.from(tableName).upsert([sanitized]).then(({ error }) => {
-            if (error) console.warn(`Supabase add error on ${collectionName}:`, error);
+            if (error) {
+              console.warn(`Supabase add error on ${collectionName}:`, error);
+              if (error.code === "23P01" || error.message?.includes("no_overlapping_confirmed_bookings")) {
+                window.dispatchEvent(new CustomEvent("choice:booking-conflict", { detail: { message: "This slot was just booked by someone else. Please choose a different time slot." } }));
+              }
+            }
           });
         }
       }).catch(err => console.warn(err));
@@ -438,7 +443,12 @@ class ChoiceDataStore {
             const tableName = collectionName === "users" ? "team_users" : collectionName;
             const sanitized = sanitizeForSupabase(tableName, { ...updates, id });
             sb.from(tableName).update(sanitized).eq("id", id).then(({ error }) => {
-              if (error) console.warn(`Supabase update error on ${collectionName}:`, error);
+              if (error) {
+                console.warn(`Supabase update error on ${collectionName}:`, error);
+                if (error.code === "23P01" || error.message?.includes("no_overlapping_confirmed_bookings")) {
+                  window.dispatchEvent(new CustomEvent("choice:booking-conflict", { detail: { message: "This slot was just booked by someone else. Please choose a different time slot." } }));
+                }
+              }
             });
           }
         }).catch(err => console.warn(err));

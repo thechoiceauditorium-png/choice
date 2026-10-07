@@ -32,6 +32,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (urlParams.get("action") === "new") {
     openBookingModal();
   }
+
+  // Handle server exclusion constraint conflicts
+  window.addEventListener("choice:booking-conflict", (e) => {
+    showToast(e.detail?.message || "This slot was just booked by someone else. Please choose a different time slot.", "danger");
+  });
 });
 
 function initCalendarControls() {
@@ -192,12 +197,17 @@ function renderListView(bookings = []) {
     return;
   }
 
+function toDatetimeLocal(val) {
+  if (!val) return "";
+  return String(val).replace(" ", "T").slice(0, 16);
+}
+
   tbody.innerHTML = filtered.map(b => `
     <tr>
       <td><strong>#${b.bookingNo}</strong></td>
       <td>
         <div><strong>${formatDate(b.reservationDate)}</strong></div>
-        <div style="font-size: 0.75rem; color: #666;">${b.fromDateTime ? b.fromDateTime.replace('T', ' ') : ''} to ${b.toDateTime ? b.toDateTime.replace('T', ' ') : ''}</div>
+        <div style="font-size: 0.75rem; color: #666;">${b.fromDateTime ? b.fromDateTime.replace('T', ' ').slice(0, 16) : ''} to ${b.toDateTime ? b.toDateTime.replace('T', ' ').slice(0, 16) : ''}</div>
       </td>
       <td>
         <div style="font-weight: 600;">${escapeHtml(b.customerName)}</div>
@@ -281,8 +291,8 @@ function openBookingModal(booking = null, defaultDate = null) {
     document.getElementById("booking-reference").value = booking.reference || "";
     document.getElementById("event-desc").value = booking.eventDesc || "";
     document.getElementById("reservation-date").value = booking.reservationDate || "";
-    document.getElementById("from-datetime").value = booking.fromDateTime || "";
-    document.getElementById("to-datetime").value = booking.toDateTime || "";
+    document.getElementById("from-datetime").value = toDatetimeLocal(booking.fromDateTime);
+    document.getElementById("to-datetime").value = toDatetimeLocal(booking.toDateTime);
     document.getElementById("booking-status").value = booking.status || "Confirmed";
 
     // Fill line items
@@ -400,6 +410,11 @@ function handleSaveBooking() {
   const fromDateTime = document.getElementById("from-datetime").value;
   const toDateTime = document.getElementById("to-datetime").value;
   const status = document.getElementById("booking-status").value;
+
+  if (fromDateTime && toDateTime && new Date(toDateTime).getTime() <= new Date(fromDateTime).getTime()) {
+    showToast("Event end time must be later than start time.", "warning");
+    return;
+  }
 
   // Conflict Detection Check
   const conflictingBooking = checkForConflicts(currentId, fromDateTime, toDateTime, status);
