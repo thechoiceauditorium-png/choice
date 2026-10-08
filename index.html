@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login | The Choice Auditorium Operations</title>
+  <title>Authentication | The Choice Auditorium Operations</title>
   <link rel="stylesheet" href="css/styles.css">
   <script src="js/supabase.min.js"></script>
   <style>
@@ -15,6 +16,7 @@
       padding: 1.5rem;
       background: #F4F5F7;
     }
+
     .login-card {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -24,6 +26,7 @@
       width: 100%;
       overflow: hidden;
     }
+
     .login-header {
       background: #FFFFFF;
       color: var(--text);
@@ -32,11 +35,13 @@
       position: relative;
       border-bottom: 1px solid var(--border);
     }
+
     .login-header .logo-container-choice {
       max-width: 220px;
       margin: 0 auto 1.25rem auto;
       color: var(--brand-red);
     }
+
     .login-header h2 {
       font-size: 1.25rem;
       letter-spacing: 0.5px;
@@ -44,28 +49,123 @@
       text-transform: uppercase;
       margin-bottom: 0.25rem;
     }
+
     .login-header p {
       font-size: 0.85rem;
       color: var(--muted);
     }
+
     .login-body {
-      padding: 2.25rem 2rem 2.5rem 2rem;
+      padding: 1.75rem 2rem 2.25rem 2rem;
+    }
+
+    .auth-nav {
+      display: flex;
+      background: #EEF2F6;
+      border-radius: var(--radius-md);
+      padding: 4px;
+      margin-bottom: 1.5rem;
+      gap: 4px;
+    }
+
+    .auth-tab-btn {
+      flex: 1;
+      padding: 0.5rem 0.25rem;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-align: center;
+    }
+
+    .auth-tab-btn.active {
+      background: var(--surface);
+      color: var(--brand-red);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+
+    .auth-view {
+      display: none;
+    }
+
+    .auth-view.active {
+      display: block;
+    }
+
+    .auth-footer-links {
+      margin-top: 1.25rem;
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .auth-link {
+      color: var(--brand-red);
+      text-decoration: none;
+      font-weight: 600;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 0;
+      font-size: inherit;
+    }
+
+    .auth-link:hover {
+      text-decoration: underline;
+    }
+
+    .info-callout {
+      background: #F0F9FF;
+      border: 1px solid #BAE6FD;
+      color: #0369A1;
+      border-radius: var(--radius-md);
+      padding: 0.75rem 0.9rem;
+      font-size: 0.8rem;
+      line-height: 1.45;
+      margin-bottom: 1.25rem;
+    }
+
+    .warning-callout {
+      background: #FFFBEB;
+      border: 1px solid #FDE68A;
+      color: #92400E;
+      border-radius: var(--radius-md);
+      padding: 0.75rem 0.9rem;
+      font-size: 0.8rem;
+      line-height: 1.45;
+      margin-bottom: 1.25rem;
+    }
+
+    .otp-inputs {
+      letter-spacing: 6px;
+      font-size: 1.25rem;
+      font-weight: 700;
+      text-align: center;
     }
   </style>
 </head>
+
 <body>
   <div class="login-wrapper">
     <div class="login-card">
       <div class="login-header">
         <div class="logo-container-choice">
-          <svg viewBox="0 0 540 280" xmlns="http://www.w3.org/2000/svg" style="width: 100%; height: auto; display: block;">
+          <svg viewBox="0 0 540 280" xmlns="http://www.w3.org/2000/svg"
+            style="width: 100%; height: auto; display: block;">
             <g fill="currentColor">
               <!-- Roofline Structure -->
-              <path d="M 50,118 L 196,118 L 270,52 L 344,118 L 490,118 L 490,109 L 348,109 L 270,40 L 192,109 L 50,109 Z" />
+              <path
+                d="M 50,118 L 196,118 L 270,52 L 344,118 L 490,118 L 490,109 L 348,109 L 270,40 L 192,109 L 50,109 Z" />
               <path fill-rule="evenodd" d="M 270,68 L 322,114 L 218,114 Z M 270,82 L 238,110 L 302,110 Z" />
               <path d="M 48,124 Q 270,121 492,124 L 492,128 Q 270,125 48,128 Z" />
               <!-- CHOICE Wordmark -->
-              <text x="270" y="212" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-weight="900" font-size="94" letter-spacing="4" text-anchor="middle">CHOICE</text>
+              <text x="270" y="212"
+                font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+                font-weight="900" font-size="94" letter-spacing="4" text-anchor="middle">CHOICE</text>
               <!-- Bottom underline -->
               <path d="M 48,242 Q 270,238 492,242 Q 270,250 48,242 Z" />
             </g>
@@ -77,19 +177,121 @@
       </div>
 
       <div class="login-body">
-        <form id="login-form">
-          <div class="form-group">
-            <label class="form-label" for="login-email">Email Address</label>
-            <input type="email" id="login-email" class="form-control" placeholder="name@choiceauditorium.com" required>
+        <!-- Tab navigation -->
+        <div class="auth-nav">
+          <button type="button" class="auth-tab-btn active" data-tab="login">Sign In</button>
+          <button type="button" class="auth-tab-btn" data-tab="forgot">Forgot Password</button>
+          <button type="button" class="auth-tab-btn" data-tab="signup">Sign Up</button>
+        </div>
+
+        <!-- 1. SIGN IN VIEW -->
+        <div id="view-login" class="auth-view active">
+          <form id="login-form">
+            <div class="form-group">
+              <label class="form-label" for="login-email">Email Address</label>
+              <input type="email" id="login-email" class="form-control" placeholder="name@choiceauditorium.com" required autocomplete="email">
+            </div>
+            <div class="form-group">
+              <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                <label class="form-label" for="login-password">Password</label>
+                <button type="button" class="auth-link" data-switch-tab="forgot" style="font-size: 0.78rem;">Forgot?</button>
+              </div>
+              <input type="password" id="login-password" class="form-control" placeholder="••••••••" required autocomplete="current-password">
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem; font-weight: 600;">
+              Sign In to Dashboard
+            </button>
+          </form>
+          <div class="auth-footer-links">
+            Don't have an account? <button type="button" class="auth-link" data-switch-tab="signup">Sign Up</button>
           </div>
-          <div class="form-group">
-            <label class="form-label" for="login-password">Password</label>
-            <input type="password" id="login-password" class="form-control" placeholder="••••••••" required>
+        </div>
+
+        <!-- 2. FORGOT PASSWORD VIEW (EMAIL OTP VIA BREVO) -->
+        <div id="view-forgot" class="auth-view">
+          <!-- Step 1: Request OTP -->
+          <div id="forgot-step-request">
+            <div class="info-callout">
+              Enter your registered email address. A 6-digit recovery OTP will be dispatched via <strong>Brevo</strong>.
+            </div>
+            <form id="forgot-request-form">
+              <div class="form-group">
+                <label class="form-label" for="forgot-email">Account Email</label>
+                <input type="email" id="forgot-email" class="form-control" placeholder="name@choiceauditorium.com" required autocomplete="email">
+              </div>
+              <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem; font-weight: 600;">
+                Send Recovery OTP
+              </button>
+            </form>
           </div>
-          <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem; font-weight: 600;">
-            Sign In to Dashboard
-          </button>
-        </form>
+
+          <!-- Step 2: Verify OTP & Reset Password -->
+          <div id="forgot-step-verify" style="display: none;">
+            <div class="info-callout">
+              OTP sent to <strong id="forgot-target-email">your email</strong>. Enter the 6-digit code and choose a new password.
+            </div>
+            <form id="forgot-verify-form">
+              <div class="form-group">
+                <label class="form-label" for="forgot-otp">6-Digit Email OTP</label>
+                <input type="text" id="forgot-otp" class="form-control otp-inputs" placeholder="123456" maxlength="8" required autocomplete="one-time-code">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="forgot-new-password">New Password</label>
+                <input type="password" id="forgot-new-password" class="form-control" placeholder="Minimum 8 characters" minlength="8" required autocomplete="new-password">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="forgot-confirm-password">Confirm New Password</label>
+                <input type="password" id="forgot-confirm-password" class="form-control" placeholder="Repeat new password" minlength="8" required autocomplete="new-password">
+              </div>
+              <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem; font-weight: 600;">
+                Verify OTP & Save Password
+              </button>
+            </form>
+            <div style="text-align: center; margin-top: 0.75rem;">
+              <button type="button" class="auth-link" id="btn-back-to-request" style="font-size: 0.8rem;">Change Email / Resend</button>
+            </div>
+          </div>
+
+          <div class="auth-footer-links">
+            Remember your credentials? <button type="button" class="auth-link" data-switch-tab="login">Back to Sign In</button>
+          </div>
+        </div>
+
+        <!-- 3. SIGN UP VIEW -->
+        <div id="view-signup" class="auth-view">
+          <div class="warning-callout">
+            <strong>Security Notice:</strong> All new accounts are protected by Role-Based Access Control (RBAC). Newly registered staff must be assigned permissions by an administrator before accessing venue operations.
+          </div>
+          <form id="signup-form">
+            <div class="form-group">
+              <label class="form-label" for="signup-name">Full Name</label>
+              <input type="text" id="signup-name" class="form-control" placeholder="John Doe" required autocomplete="name">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="signup-phone">Phone Number (Optional)</label>
+              <input type="tel" id="signup-phone" class="form-control" placeholder="+91 98765 43210" autocomplete="tel">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="signup-email">Email Address</label>
+              <input type="email" id="signup-email" class="form-control" placeholder="name@choiceauditorium.com" required autocomplete="email">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="signup-password">Password</label>
+              <input type="password" id="signup-password" class="form-control" placeholder="Minimum 8 characters" minlength="8" required autocomplete="new-password">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="signup-confirm-password">Confirm Password</label>
+              <input type="password" id="signup-confirm-password" class="form-control" placeholder="Repeat password" minlength="8" required autocomplete="new-password">
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem; font-weight: 600;">
+              Register Account
+            </button>
+          </form>
+          <div class="auth-footer-links">
+            Already have an account? <button type="button" class="auth-link" data-switch-tab="login">Sign In</button>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -97,15 +299,46 @@
   <div id="toast-mount"></div>
 
   <script type="module">
-    import { login } from "./js/auth.js";
+    import { login, requestPasswordReset, verifyRecoveryOtp, updateUserPassword, signUp } from "./js/auth.js";
     import { showToast } from "./js/common.js";
 
+    // Tab switching logic
+    const tabButtons = document.querySelectorAll(".auth-tab-btn");
+    const views = {
+      login: document.getElementById("view-login"),
+      forgot: document.getElementById("view-forgot"),
+      signup: document.getElementById("view-signup")
+    };
+
+    function switchTab(tabKey) {
+      tabButtons.forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.tab === tabKey);
+      });
+      Object.keys(views).forEach(key => {
+        if (views[key]) {
+          views[key].classList.toggle("active", key === tabKey);
+        }
+      });
+    }
+
+    tabButtons.forEach(btn => {
+      btn.addEventListener("click", () => switchTab(btn.dataset.tab));
+    });
+
+    document.querySelectorAll("[data-switch-tab]").forEach(link => {
+      link.addEventListener("click", (e) => {
+        e.preventDefault();
+        switchTab(link.dataset.switchTab);
+      });
+    });
+
+    // 1. Sign In Handler
     document.getElementById("login-form").addEventListener("submit", async (e) => {
       e.preventDefault();
       const email = document.getElementById("login-email").value.trim();
       const pwd = document.getElementById("login-password").value;
       const submitBtn = e.target.querySelector("button[type='submit']");
-      
+
       submitBtn.disabled = true;
       submitBtn.textContent = "Signing In...";
 
@@ -125,6 +358,134 @@
         submitBtn.textContent = "Sign In to Dashboard";
       }
     });
+
+    // 2. Forgot Password Request Handler (Brevo Email OTP)
+    let pendingResetEmail = "";
+    const stepRequest = document.getElementById("forgot-step-request");
+    const stepVerify = document.getElementById("forgot-step-verify");
+    const targetEmailDisplay = document.getElementById("forgot-target-email");
+
+    document.getElementById("forgot-request-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("forgot-email").value.trim();
+      const submitBtn = e.target.querySelector("button[type='submit']");
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Sending OTP...";
+
+      try {
+        const res = await requestPasswordReset(email);
+        if (res.success) {
+          pendingResetEmail = email;
+          targetEmailDisplay.textContent = email;
+          stepRequest.style.display = "none";
+          stepVerify.style.display = "block";
+          showToast("Recovery OTP sent to your email!");
+        } else {
+          showToast(res.error, "danger");
+        }
+      } catch (err) {
+        showToast(err.message || "Could not dispatch reset email", "danger");
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Send Recovery OTP";
+      }
+    });
+
+    document.getElementById("btn-back-to-request").addEventListener("click", () => {
+      stepVerify.style.display = "none";
+      stepRequest.style.display = "block";
+    });
+
+    // Forgot Password Verify OTP & Reset Password Handler
+    document.getElementById("forgot-verify-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const otp = document.getElementById("forgot-otp").value.trim();
+      const newPwd = document.getElementById("forgot-new-password").value;
+      const confirmPwd = document.getElementById("forgot-confirm-password").value;
+      const submitBtn = e.target.querySelector("button[type='submit']");
+
+      if (newPwd !== confirmPwd) {
+        showToast("Passwords do not match.", "warning");
+        return;
+      }
+      if (newPwd.length < 8) {
+        showToast("Password must be at least 8 characters long.", "warning");
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Verifying & Updating...";
+
+      try {
+        const verifyRes = await verifyRecoveryOtp(pendingResetEmail, otp);
+        if (!verifyRes.success) {
+          showToast(verifyRes.error, "danger");
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Verify OTP & Save Password";
+          return;
+        }
+
+        const updateRes = await updateUserPassword(newPwd);
+        if (updateRes.success) {
+          showToast("Password updated successfully! Redirecting...");
+          setTimeout(() => window.location.href = "dashboard.html", 600);
+        } else {
+          showToast(updateRes.error, "danger");
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Verify OTP & Save Password";
+        }
+      } catch (err) {
+        showToast(err.message || "Failed to update password", "danger");
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Verify OTP & Save Password";
+      }
+    });
+
+    // 3. Sign Up Handler
+    document.getElementById("signup-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const name = document.getElementById("signup-name").value.trim();
+      const phone = document.getElementById("signup-phone").value.trim();
+      const email = document.getElementById("signup-email").value.trim();
+      const pwd = document.getElementById("signup-password").value;
+      const confirmPwd = document.getElementById("signup-confirm-password").value;
+      const submitBtn = e.target.querySelector("button[type='submit']");
+
+      if (pwd !== confirmPwd) {
+        showToast("Passwords do not match.", "warning");
+        return;
+      }
+      if (pwd.length < 8) {
+        showToast("Password must be at least 8 characters long.", "warning");
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Creating Account...";
+
+      try {
+        const res = await signUp(email, pwd, { name, phone });
+        if (res.success) {
+          if (res.requiresEmailConfirmation) {
+            showToast("Registration successful! Check your email to confirm your account.", "success");
+          } else {
+            showToast("Account created! Please ask an administrator to assign your role.", "success");
+          }
+          // Reset form and switch to login tab
+          e.target.reset();
+          setTimeout(() => switchTab("login"), 1200);
+        } else {
+          showToast(res.error, "danger");
+        }
+      } catch (err) {
+        showToast(err.message || "Sign up failed", "danger");
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Register Account";
+      }
+    });
   </script>
 </body>
+
 </html>

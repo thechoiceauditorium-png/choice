@@ -189,6 +189,150 @@ export async function logout() {
 }
 
 /**
+ * Initiates Forgot Password flow by sending an email with OTP code / recovery link.
+ * Sent via Brevo SMTP relay configured in Supabase.
+ */
+export async function requestPasswordReset(email) {
+  const lowerEmail = email ? email.toLowerCase().trim() : "";
+  if (!lowerEmail) {
+    return { success: false, error: "Please enter your email address." };
+  }
+
+  const sb = await getSupabase();
+  if (!sb || !sb.auth) {
+    return { success: false, error: "Authentication service unavailable." };
+  }
+
+  try {
+    const { error } = await sb.auth.resetPasswordForEmail(lowerEmail);
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (err) {
+    console.error("Password reset request error:", err);
+    return { success: false, error: err?.message || "Failed to send reset code." };
+  }
+}
+
+/**
+ * Verifies recovery OTP code sent to user email.
+ * Type is strictly 'recovery'.
+ */
+export async function verifyRecoveryOtp(email, token) {
+  const lowerEmail = email ? email.toLowerCase().trim() : "";
+  const cleanToken = token ? token.trim() : "";
+
+  if (!lowerEmail || !cleanToken) {
+    return { success: false, error: "Please provide both email and 6-digit OTP code." };
+  }
+
+  const sb = await getSupabase();
+  if (!sb || !sb.auth) {
+    return { success: false, error: "Authentication service unavailable." };
+  }
+
+  try {
+    const { data, error } = await sb.auth.verifyOtp({
+      email: lowerEmail,
+      token: cleanToken,
+      type: "recovery"
+    });
+
+    if (error || !data?.session) {
+      return {
+        success: false,
+        error: error?.message || "Invalid or expired OTP code."
+      };
+    }
+
+    return { success: true, session: data.session };
+  } catch (err) {
+    console.error("Recovery OTP verification error:", err);
+    return { success: false, error: err?.message || "Verification failed." };
+  }
+}
+
+/**
+ * Updates the user's password once verified via OTP session.
+ * Handled and hashed server-side with salted bcrypt by Supabase Auth GoTrue.
+ */
+export async function updateUserPassword(newPassword) {
+  if (!newPassword || newPassword.length < 8) {
+    return { success: false, error: "New password must be at least 8 characters long." };
+  }
+
+  const sb = await getSupabase();
+  if (!sb || !sb.auth) {
+    return { success: false, error: "Authentication service unavailable." };
+  }
+
+  try {
+    const { data, error } = await sb.auth.updateUser({
+      password: newPassword
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, user: data.user };
+  } catch (err) {
+    console.error("Password update error:", err);
+    return { success: false, error: err?.message || "Failed to update password." };
+  }
+}
+
+/**
+ * User Registration / Sign Up.
+ * Note: Zero privilege escalation. Newly created accounts do NOT receive 'owner' or 'worker'
+ * role until an authorized administrator assigns raw_app_meta_data.role in Supabase.
+ * Passwords are cryptographically salted and hashed (bcrypt/argon2) server-side by GoTrue.
+ */
+export async function signUp(email, password, metadata = {}) {
+  const lowerEmail = email ? email.toLowerCase().trim() : "";
+  if (!lowerEmail || !password) {
+    return { success: false, error: "Please enter both email and password." };
+  }
+
+  if (password.length < 8) {
+    return { success: false, error: "Password must be at least 8 characters long." };
+  }
+
+  const sb = await getSupabase();
+  if (!sb || !sb.auth) {
+    return { success: false, error: "Authentication service unavailable." };
+  }
+
+  try {
+    const { data, error } = await sb.auth.signUp({
+      email: lowerEmail,
+      password: password,
+      options: {
+        data: {
+          name: metadata.name?.trim() || lowerEmail.split("@")[0],
+          phone: metadata.phone?.trim() || ""
+        }
+      }
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return {
+      success: true,
+      user: data.user,
+      session: data.session,
+      requiresEmailConfirmation: !data.session
+    };
+  } catch (err) {
+    console.error("Sign up error:", err);
+    return { success: false, error: err?.message || "Sign up failed." };
+  }
+}
+
+/**
  * Protects pages: must be called on protected pages to validate the live Supabase session.
  * Redirects to index.html if missing or expired.
  */
