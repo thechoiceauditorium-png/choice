@@ -266,7 +266,9 @@ drop policy if exists "attendance_delete" on public.attendance;
 alter table public.attendance enable row level security;
 
 create policy "attendance_select" on public.attendance for select to authenticated using (public.is_staff());
-create policy "attendance_insert" on public.attendance for insert to authenticated with check (public.is_owner());
+create policy "attendance_insert" on public.attendance for insert to authenticated with check (
+  public.is_owner() or (public.is_staff() and "approvalStatus" = 'Pending Approval')
+);
 create policy "attendance_update" on public.attendance for update to authenticated using (public.is_staff()) with check (public.is_staff());
 create policy "attendance_delete" on public.attendance for delete to authenticated using (public.is_owner());
 
