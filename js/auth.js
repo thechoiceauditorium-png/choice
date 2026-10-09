@@ -333,6 +333,76 @@ export async function signUp(email, password, metadata = {}) {
 }
 
 /**
+ * Verifies email confirmation OTP for new user registrations.
+ * Type is 'signup'.
+ */
+export async function verifySignupOtp(email, token) {
+  const lowerEmail = email ? email.toLowerCase().trim() : "";
+  const cleanToken = token ? token.trim() : "";
+
+  if (!lowerEmail || !cleanToken) {
+    return { success: false, error: "Please provide both email and verification code." };
+  }
+
+  const sb = await getSupabase();
+  if (!sb || !sb.auth) {
+    return { success: false, error: "Authentication service unavailable." };
+  }
+
+  try {
+    const { data, error } = await sb.auth.verifyOtp({
+      email: lowerEmail,
+      token: cleanToken,
+      type: "signup"
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return {
+      success: true,
+      user: data.user,
+      session: data.session
+    };
+  } catch (err) {
+    console.error("Signup OTP verification error:", err);
+    return { success: false, error: err?.message || "Verification failed." };
+  }
+}
+
+/**
+ * Resends signup confirmation email.
+ */
+export async function resendVerificationEmail(email) {
+  const lowerEmail = email ? email.toLowerCase().trim() : "";
+  if (!lowerEmail) {
+    return { success: false, error: "Please provide your email address." };
+  }
+
+  const sb = await getSupabase();
+  if (!sb || !sb.auth) {
+    return { success: false, error: "Authentication service unavailable." };
+  }
+
+  try {
+    const { error } = await sb.auth.resend({
+      type: "signup",
+      email: lowerEmail
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error("Resend verification error:", err);
+    return { success: false, error: err?.message || "Failed to resend email." };
+  }
+}
+
+/**
  * Protects pages: must be called on protected pages to validate the live Supabase session.
  * Redirects to index.html if missing or expired.
  */

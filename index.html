@@ -259,34 +259,58 @@
 
         <!-- 3. SIGN UP VIEW -->
         <div id="view-signup" class="auth-view">
-          <div class="warning-callout">
-            <strong>Security Notice:</strong> All new accounts are protected by Role-Based Access Control (RBAC). Newly registered staff must be assigned permissions by an administrator before accessing venue operations.
+          <!-- Step 1: Registration Form -->
+          <div id="signup-step-register">
+            <div class="warning-callout">
+              <strong>Account Registration:</strong> Enter your details below. A verification email will be dispatched to confirm your address.
+            </div>
+            <form id="signup-form">
+              <div class="form-group">
+                <label class="form-label" for="signup-name">Full Name</label>
+                <input type="text" id="signup-name" class="form-control" placeholder="John Doe" required autocomplete="name">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="signup-phone">Phone Number (Optional)</label>
+                <input type="tel" id="signup-phone" class="form-control" placeholder="+91 98765 43210" autocomplete="tel">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="signup-email">Email Address</label>
+                <input type="email" id="signup-email" class="form-control" placeholder="name@choiceauditorium.com" required autocomplete="email">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="signup-password">Password</label>
+                <input type="password" id="signup-password" class="form-control" placeholder="Minimum 8 characters" minlength="8" required autocomplete="new-password">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="signup-confirm-password">Confirm Password</label>
+                <input type="password" id="signup-confirm-password" class="form-control" placeholder="Repeat password" minlength="8" required autocomplete="new-password">
+              </div>
+              <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem; font-weight: 600;">
+                Register Account
+              </button>
+            </form>
           </div>
-          <form id="signup-form">
-            <div class="form-group">
-              <label class="form-label" for="signup-name">Full Name</label>
-              <input type="text" id="signup-name" class="form-control" placeholder="John Doe" required autocomplete="name">
+
+          <!-- Step 2: Email Verification (OTP / Confirmation link) -->
+          <div id="signup-step-verify" style="display: none;">
+            <div class="info-callout">
+              Verification email dispatched to <strong id="signup-target-email">your email</strong>. Click the confirmation link in your email OR enter the 6-digit code below:
             </div>
-            <div class="form-group">
-              <label class="form-label" for="signup-phone">Phone Number (Optional)</label>
-              <input type="tel" id="signup-phone" class="form-control" placeholder="+91 98765 43210" autocomplete="tel">
+            <form id="signup-verify-form">
+              <div class="form-group">
+                <label class="form-label" for="signup-otp">6-Digit Verification Code</label>
+                <input type="text" id="signup-otp" class="form-control otp-inputs" placeholder="123456" maxlength="8" autocomplete="one-time-code">
+              </div>
+              <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem; font-weight: 600;">
+                Verify Email & Activate
+              </button>
+            </form>
+            <div style="display: flex; justify-content: space-between; margin-top: 1rem; font-size: 0.8rem;">
+              <button type="button" class="auth-link" id="btn-resend-signup-email">Resend Verification Email</button>
+              <button type="button" class="auth-link" id="btn-back-to-register">Edit Email</button>
             </div>
-            <div class="form-group">
-              <label class="form-label" for="signup-email">Email Address</label>
-              <input type="email" id="signup-email" class="form-control" placeholder="name@choiceauditorium.com" required autocomplete="email">
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="signup-password">Password</label>
-              <input type="password" id="signup-password" class="form-control" placeholder="Minimum 8 characters" minlength="8" required autocomplete="new-password">
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="signup-confirm-password">Confirm Password</label>
-              <input type="password" id="signup-confirm-password" class="form-control" placeholder="Repeat password" minlength="8" required autocomplete="new-password">
-            </div>
-            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem; font-weight: 600;">
-              Register Account
-            </button>
-          </form>
+          </div>
+
           <div class="auth-footer-links">
             Already have an account? <button type="button" class="auth-link" data-switch-tab="login">Sign In</button>
           </div>
@@ -299,7 +323,8 @@
   <div id="toast-mount"></div>
 
   <script type="module">
-    import { login, requestPasswordReset, verifyRecoveryOtp, updateUserPassword, signUp } from "./js/auth.js";
+    import { login, requestPasswordReset, verifyRecoveryOtp, updateUserPassword, signUp, verifySignupOtp, resendVerificationEmail } from "./js/auth.js";
+    import { getSupabase } from "./js/supabase-config.js";
     import { showToast } from "./js/common.js";
 
     // Tab switching logic
@@ -332,6 +357,40 @@
       });
     });
 
+    // Handle incoming Supabase email redirect links (Recovery / Signup verification)
+    (async () => {
+      const sb = await getSupabase();
+      if (!sb?.auth) return;
+
+      const hash = window.location.hash;
+      const search = window.location.search;
+
+      if (hash.includes("type=recovery") || search.includes("type=recovery")) {
+        switchTab("forgot");
+        document.getElementById("forgot-step-request").style.display = "none";
+        document.getElementById("forgot-step-verify").style.display = "block";
+        const otpGroup = document.getElementById("forgot-otp")?.closest(".form-group");
+        if (otpGroup) otpGroup.style.display = "none";
+        document.getElementById("forgot-otp").required = false;
+        showToast("Password reset link verified! Please enter your new password.");
+      } else if (hash.includes("type=signup") || search.includes("type=signup")) {
+        showToast("Email verified successfully! You can now sign in.", "success");
+        switchTab("login");
+      }
+
+      sb.auth.onAuthStateChange(async (event, session) => {
+        if (event === "PASSWORD_RECOVERY") {
+          switchTab("forgot");
+          document.getElementById("forgot-step-request").style.display = "none";
+          document.getElementById("forgot-step-verify").style.display = "block";
+          const otpGroup = document.getElementById("forgot-otp")?.closest(".form-group");
+          if (otpGroup) otpGroup.style.display = "none";
+          document.getElementById("forgot-otp").required = false;
+          showToast("Password reset session active. Please enter your new password.");
+        }
+      });
+    })();
+
     // 1. Sign In Handler
     document.getElementById("login-form").addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -359,7 +418,7 @@
       }
     });
 
-    // 2. Forgot Password Request Handler (Brevo Email OTP)
+    // 2. Forgot Password Request Handler (Email OTP / Link via Supabase)
     let pendingResetEmail = "";
     const stepRequest = document.getElementById("forgot-step-request");
     const stepVerify = document.getElementById("forgot-step-verify");
@@ -371,7 +430,7 @@
       const submitBtn = e.target.querySelector("button[type='submit']");
 
       submitBtn.disabled = true;
-      submitBtn.textContent = "Sending OTP...";
+      submitBtn.textContent = "Sending...";
 
       try {
         const res = await requestPasswordReset(email);
@@ -380,7 +439,7 @@
           targetEmailDisplay.textContent = email;
           stepRequest.style.display = "none";
           stepVerify.style.display = "block";
-          showToast("Recovery OTP sent to your email!");
+          showToast("Password reset email sent! Check your inbox.");
         } else {
           showToast(res.error, "danger");
         }
@@ -400,7 +459,8 @@
     // Forgot Password Verify OTP & Reset Password Handler
     document.getElementById("forgot-verify-form").addEventListener("submit", async (e) => {
       e.preventDefault();
-      const otp = document.getElementById("forgot-otp").value.trim();
+      const otpInput = document.getElementById("forgot-otp");
+      const otp = otpInput ? otpInput.value.trim() : "";
       const newPwd = document.getElementById("forgot-new-password").value;
       const confirmPwd = document.getElementById("forgot-confirm-password").value;
       const submitBtn = e.target.querySelector("button[type='submit']");
@@ -415,15 +475,18 @@
       }
 
       submitBtn.disabled = true;
-      submitBtn.textContent = "Verifying & Updating...";
+      submitBtn.textContent = "Updating Password...";
 
       try {
-        const verifyRes = await verifyRecoveryOtp(pendingResetEmail, otp);
-        if (!verifyRes.success) {
-          showToast(verifyRes.error, "danger");
-          submitBtn.disabled = false;
-          submitBtn.textContent = "Verify OTP & Save Password";
-          return;
+        // If OTP field is visible and populated, verify OTP first
+        if (otpInput && otpInput.offsetParent !== null && otp) {
+          const verifyRes = await verifyRecoveryOtp(pendingResetEmail, otp);
+          if (!verifyRes.success) {
+            showToast(verifyRes.error, "danger");
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Verify & Save Password";
+            return;
+          }
         }
 
         const updateRes = await updateUserPassword(newPwd);
@@ -433,16 +496,21 @@
         } else {
           showToast(updateRes.error, "danger");
           submitBtn.disabled = false;
-          submitBtn.textContent = "Verify OTP & Save Password";
+          submitBtn.textContent = "Verify & Save Password";
         }
       } catch (err) {
         showToast(err.message || "Failed to update password", "danger");
         submitBtn.disabled = false;
-        submitBtn.textContent = "Verify OTP & Save Password";
+        submitBtn.textContent = "Verify & Save Password";
       }
     });
 
-    // 3. Sign Up Handler
+    // 3. Sign Up Handler (with email confirmation step)
+    let pendingSignupEmail = "";
+    const stepRegister = document.getElementById("signup-step-register");
+    const stepSignupVerify = document.getElementById("signup-step-verify");
+    const targetSignupEmailDisplay = document.getElementById("signup-target-email");
+
     document.getElementById("signup-form").addEventListener("submit", async (e) => {
       e.preventDefault();
       const name = document.getElementById("signup-name").value.trim();
@@ -467,14 +535,18 @@
       try {
         const res = await signUp(email, pwd, { name, phone });
         if (res.success) {
+          pendingSignupEmail = email;
+          if (targetSignupEmailDisplay) targetSignupEmailDisplay.textContent = email;
+
           if (res.requiresEmailConfirmation) {
-            showToast("Registration successful! Check your email to confirm your account.", "success");
+            stepRegister.style.display = "none";
+            stepSignupVerify.style.display = "block";
+            showToast("Registration successful! Please verify your email.", "success");
           } else {
             showToast("Account created! Please ask an administrator to assign your role.", "success");
+            e.target.reset();
+            setTimeout(() => switchTab("login"), 1200);
           }
-          // Reset form and switch to login tab
-          e.target.reset();
-          setTimeout(() => switchTab("login"), 1200);
         } else {
           showToast(res.error, "danger");
         }
@@ -484,6 +556,62 @@
         submitBtn.disabled = false;
         submitBtn.textContent = "Register Account";
       }
+    });
+
+    // Signup OTP Verification Handler
+    document.getElementById("signup-verify-form")?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const otp = document.getElementById("signup-otp").value.trim();
+      const submitBtn = e.target.querySelector("button[type='submit']");
+
+      if (!otp) {
+        showToast("Please enter the verification code from your email.", "warning");
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Verifying...";
+
+      try {
+        const res = await verifySignupOtp(pendingSignupEmail, otp);
+        if (res.success) {
+          showToast("Email verified successfully! You can now sign in.", "success");
+          setTimeout(() => {
+            stepSignupVerify.style.display = "none";
+            stepRegister.style.display = "block";
+            document.getElementById("signup-form").reset();
+            switchTab("login");
+          }, 1200);
+        } else {
+          showToast(res.error, "danger");
+        }
+      } catch (err) {
+        showToast(err.message || "Verification failed", "danger");
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Verify Email & Activate";
+      }
+    });
+
+    // Resend Signup Email
+    document.getElementById("btn-resend-signup-email")?.addEventListener("click", async () => {
+      if (!pendingSignupEmail) return;
+      try {
+        const res = await resendVerificationEmail(pendingSignupEmail);
+        if (res.success) {
+          showToast("Verification email resent!");
+        } else {
+          showToast(res.error, "danger");
+        }
+      } catch (err) {
+        showToast(err.message || "Failed to resend", "danger");
+      }
+    });
+
+    // Back to Register form
+    document.getElementById("btn-back-to-register")?.addEventListener("click", () => {
+      stepSignupVerify.style.display = "none";
+      stepRegister.style.display = "block";
     });
   </script>
 </body>
