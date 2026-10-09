@@ -41,6 +41,11 @@ language plpgsql
 security definer
 as $$
 begin
+  -- Allow superuser, service_role, or direct SQL Editor execution (where auth.jwt() is null)
+  if current_user in ('postgres', 'service_role', 'supabase_admin') or (auth.jwt() is null) then
+    return new;
+  end if;
+
   if not public.is_owner() then
     -- Non-owners cannot modify approval status or approval stamps
     if (new."approvalStatus" is distinct from old."approvalStatus") or
@@ -70,6 +75,11 @@ language plpgsql
 security definer
 as $$
 begin
+  -- Allow superuser, service_role, or direct SQL Editor execution (where auth.jwt() is null)
+  if current_user in ('postgres', 'service_role', 'supabase_admin') or (auth.jwt() is null) then
+    return new;
+  end if;
+
   if not public.is_owner() then
     if (new.role is distinct from old.role) then
       raise exception 'Security Error: Only owners can modify user roles';
