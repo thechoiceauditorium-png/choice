@@ -9,6 +9,24 @@ import { dbStore } from "./firebase-config.js";
 import { evaluateNotifications } from "./notifications.js";
 
 let currentChecklistId = null;
+let selectedMonthFilter = "";
+let selectedStatusFilter = "all";
+
+function getFilteredChecklists(checklists = []) {
+  return checklists.filter(c => {
+    if (selectedMonthFilter) {
+      const createdMonth = c.createdAt ? c.createdAt.slice(0, 7) : "";
+      const eventMonth = c.eventDate ? c.eventDate.slice(0, 7) : "";
+      if (createdMonth !== selectedMonthFilter && eventMonth !== selectedMonthFilter) {
+        return false;
+      }
+    }
+    if (selectedStatusFilter !== "all") {
+      if (c.status !== selectedStatusFilter) return false;
+    }
+    return true;
+  });
+}
 
 document.addEventListener("DOMContentLoaded", async () => {
   const user = await requireAuth();
@@ -18,6 +36,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   evaluateNotifications();
 
   initModalEvents();
+  initFilterEvents();
 
   // Check URL param for ?id=
   const urlParams = new URLSearchParams(window.location.search);
@@ -25,9 +44,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Subscribe to checklists updates
   dbStore.subscribe("checklists", (checklists) => {
-    if (checklists.length > 0) {
-      if (!currentChecklistId || !checklists.some(c => c.id === currentChecklistId)) {
-        currentChecklistId = targetId && checklists.some(c => c.id === targetId) ? targetId : checklists[0].id;
+    const filtered = getFilteredChecklists(checklists);
+    if (filtered.length > 0) {
+      if (!currentChecklistId || !filtered.some(c => c.id === currentChecklistId)) {
+        currentChecklistId = targetId && filtered.some(c => c.id === targetId) ? targetId : filtered[0].id;
       }
     } else {
       currentChecklistId = null;
@@ -36,6 +56,36 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderActiveChecklist(checklists);
   });
 });
+
+function initFilterEvents() {
+  const monthInput = document.getElementById("chk-month-filter");
+  const statusInput = document.getElementById("chk-status-filter");
+  const clearBtn = document.getElementById("chk-clear-filters-btn");
+
+  monthInput?.addEventListener("change", (e) => {
+    selectedMonthFilter = e.target.value;
+    const all = dbStore.get("checklists");
+    renderChecklistTabs(all);
+    renderActiveChecklist(all);
+  });
+
+  statusInput?.addEventListener("change", (e) => {
+    selectedStatusFilter = e.target.value;
+    const all = dbStore.get("checklists");
+    renderChecklistTabs(all);
+    renderActiveChecklist(all);
+  });
+
+  clearBtn?.addEventListener("click", () => {
+    selectedMonthFilter = "";
+    selectedStatusFilter = "all";
+    if (monthInput) monthInput.value = "";
+    if (statusInput) statusInput.value = "all";
+    const all = dbStore.get("checklists");
+    renderChecklistTabs(all);
+    renderActiveChecklist(all);
+  });
+}
 
 function initModalEvents() {
   // Custom checklist modal
@@ -73,12 +123,22 @@ function renderChecklistTabs(checklists = []) {
   const container = document.getElementById("chk-tabs-container");
   if (!container) return;
 
-  if (checklists.length === 0) {
-    container.innerHTML = `<span style="font-size: 0.85rem; color: #999;">No active checklists. Click "+ Add Own Checklist" above.</span>`;
+  const filtered = getFilteredChecklists(checklists);
+  const countBadge = document.getElementById("chk-count-badge");
+  if (countBadge) {
+    countBadge.textContent = `Showing ${filtered.length} of ${checklists.length} checklist(s)`;
+  }
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<span style="font-size: 0.85rem; color: #999;">No checklists found for selected month/filter.</span>`;
     return;
   }
 
-  container.innerHTML = checklists.map(c => {
+  if (!currentChecklistId || !filtered.some(c => c.id === currentChecklistId)) {
+    currentChecklistId = filtered[0].id;
+  }
+
+  container.innerHTML = filtered.map(c => {
     const isActive = c.id === currentChecklistId;
     const doneCount = c.items.filter(i => i.done).length;
     const total = c.items.length;
