@@ -16,14 +16,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   evaluateNotifications();
 
   initModals();
+  initHistoryFilters();
 
   // Subscribe to compliance items
   dbStore.subscribe("compliance", (compliance) => {
     updateComplianceStatuses(compliance);
     renderComplianceTable(compliance);
     renderAlertBanner(compliance);
+  });
+
+  // Subscribe to compliance history
+  dbStore.subscribe("compliance_history", () => {
     renderComplianceHistory();
   });
+  renderComplianceHistory();
 });
 
 function initModals() {
@@ -234,23 +240,67 @@ function handleConfirmDone() {
   showToast(`Recorded completion for "${item.title}".${nextCycleMsg}`, "success");
 }
 
+let histMonthFilter = "";
+let histSearchQuery = "";
+
+function initHistoryFilters() {
+  document.getElementById("comp-hist-month")?.addEventListener("change", (e) => {
+    histMonthFilter = e.target.value;
+    renderComplianceHistory();
+  });
+  document.getElementById("comp-hist-search")?.addEventListener("input", (e) => {
+    histSearchQuery = e.target.value.toLowerCase().trim();
+    renderComplianceHistory();
+  });
+  document.getElementById("comp-hist-clear-btn")?.addEventListener("click", () => {
+    histMonthFilter = "";
+    histSearchQuery = "";
+    const m = document.getElementById("comp-hist-month");
+    const s = document.getElementById("comp-hist-search");
+    if (m) m.value = "";
+    if (s) s.value = "";
+    renderComplianceHistory();
+  });
+}
+
 function renderComplianceHistory() {
   const tbody = document.getElementById("compliance-history-tbody");
   const countBadge = document.getElementById("completed-count-badge");
+  const amountBadge = document.getElementById("completed-amount-badge");
   if (!tbody) return;
 
   const history = dbStore.get("compliance_history") || [];
 
+  const filtered = history.filter(h => {
+    if (histMonthFilter) {
+      const hMonth = h.completedDate ? h.completedDate.slice(0, 7) : "";
+      if (hMonth !== histMonthFilter) return false;
+    }
+    if (histSearchQuery) {
+      const matchTitle = (h.title || "").toLowerCase().includes(histSearchQuery);
+      const matchRef = (h.refNo || "").toLowerCase().includes(histSearchQuery);
+      const matchNotes = (h.notes || "").toLowerCase().includes(histSearchQuery);
+      const matchBy = (h.completedBy || "").toLowerCase().includes(histSearchQuery);
+      if (!matchTitle && !matchRef && !matchNotes && !matchBy) return false;
+    }
+    return true;
+  });
+
+  const totalPaid = filtered.reduce((acc, h) => acc + (Number(h.amountPaid) || 0), 0);
+
   if (countBadge) {
-    countBadge.textContent = `${history.length} Record${history.length === 1 ? '' : 's'}`;
+    countBadge.textContent = `${filtered.length} of ${history.length} Completed`;
+  }
+  if (amountBadge) {
+    amountBadge.textContent = `${formatINR(totalPaid)} Paid`;
   }
 
-  if (history.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="padding: 1.5rem; color: #999;">No completed compliance records saved yet.</td></tr>`;
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="padding: 1.5rem; color: #999;">No completed compliance records matching filter.</td></tr>`;
     return;
   }
 
-  const sorted = [...history].sort((a, b) => new Date(b.completedDate) - new Date(a.completedDate));
+  const sorted = [...filtered].sort((a, b) => new Date(b.completedDate) - new Date(a.completedDate));
 
   tbody.innerHTML = sorted.map(h => `
     <tr>
