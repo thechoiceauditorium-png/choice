@@ -284,6 +284,59 @@ export async function updateUserPassword(newPassword) {
 }
 
 /**
+ * Changes password for currently authenticated user.
+ * Re-authenticates with current password, then updates password in Supabase GoTrue.
+ */
+export async function changePassword(currentPassword, newPassword) {
+  if (!currentPassword) {
+    return { success: false, error: "Please enter your current password." };
+  }
+  if (!newPassword || newPassword.length < 8) {
+    return { success: false, error: "New password must be at least 8 characters long." };
+  }
+  if (currentPassword === newPassword) {
+    return { success: false, error: "New password must be different from current password." };
+  }
+
+  const sb = await getSupabase();
+  if (!sb || !sb.auth) {
+    return { success: false, error: "Authentication service unavailable." };
+  }
+
+  const { data: { session } } = await sb.auth.getSession();
+  const email = session?.user?.email || verifiedUser?.email;
+  if (!email) {
+    return { success: false, error: "No active user session found. Please log in again." };
+  }
+
+  try {
+    // 1. Re-authenticate with current password to verify identity
+    const { error: verifyErr } = await sb.auth.signInWithPassword({
+      email: email,
+      password: currentPassword
+    });
+
+    if (verifyErr) {
+      return { success: false, error: "Current password is incorrect." };
+    }
+
+    // 2. Update to new password
+    const { data, error: updateErr } = await sb.auth.updateUser({
+      password: newPassword
+    });
+
+    if (updateErr) {
+      return { success: false, error: updateErr.message || "Failed to update password." };
+    }
+
+    return { success: true, user: data.user };
+  } catch (err) {
+    console.error("Change password error:", err);
+    return { success: false, error: err?.message || "Failed to change password." };
+  }
+}
+
+/**
  * User Registration / Sign Up.
  * Note: Zero privilege escalation. Newly created accounts do NOT receive 'owner' or 'worker'
  * role until an authorized administrator assigns raw_app_meta_data.role in Supabase.
