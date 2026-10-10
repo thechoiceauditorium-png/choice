@@ -2,7 +2,7 @@
  * The Choice Auditorium - Notification Evaluation Engine
  */
 
-import { dbStore } from "./firebase-config.js";
+import { dbStore } from "./supabase-config.js";
 import { getCurrentUser, isOwner } from "./auth.js";
 
 export function evaluateNotifications() {

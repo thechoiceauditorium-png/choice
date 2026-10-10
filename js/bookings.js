@@ -4,7 +4,7 @@
 
 import { requireAuth, isOwner } from "./auth.js";
 import { renderHeader, formatINR, formatDate, formatDateTime, numberToWordsINR, showToast, openModal, closeModal, escapeHtml, sanitizeTel } from "./common.js";
-import { dbStore } from "./firebase-config.js";
+import { dbStore } from "./supabase-config.js";
 import { evaluateNotifications } from "./notifications.js";
 
 let currentCalDate = new Date();

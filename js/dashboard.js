@@ -4,7 +4,7 @@
 
 import { requireAuth, isOwner, getCurrentUser } from "./auth.js";
 import { renderHeader, formatINR, formatDate, formatDateTime, showToast, escapeHtml, sanitizeTel, sanitizeUrl } from "./common.js";
-import { dbStore } from "./firebase-config.js";
+import { dbStore } from "./supabase-config.js";
 import { evaluateNotifications } from "./notifications.js";
 
 document.addEventListener("DOMContentLoaded", async () => {

@@ -31,8 +31,7 @@ PAGES = [
     "attendance.html",
     "checklists.html",
     "compliance.html",
-    "directory.html",
-    "qr.html"
+    "directory.html"
 ]
 
 SUPABASE_URL = "https://kaxcbzdogwrfbndsnqff.supabase.co"

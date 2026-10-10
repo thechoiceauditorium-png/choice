@@ -5,7 +5,7 @@
 
 import { requireAuth, isOwner, getCurrentUser } from "./auth.js";
 import { renderHeader, formatDate, formatDateTime, showToast, openModal, closeModal, escapeHtml } from "./common.js";
-import { dbStore } from "./firebase-config.js";
+import { dbStore } from "./supabase-config.js";
 import { evaluateNotifications } from "./notifications.js";
 
 let currentChecklistId = null;

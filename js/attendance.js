@@ -5,7 +5,7 @@
 
 import { requireAuth, isOwner, isWorker, getCurrentUser } from "./auth.js";
 import { renderHeader, formatDate, formatDateTime, showToast, escapeHtml, sanitizeTel } from "./common.js";
-import { dbStore } from "./firebase-config.js";
+import { dbStore } from "./supabase-config.js";
 import { evaluateNotifications } from "./notifications.js";
 
 function getWorkersList() {
