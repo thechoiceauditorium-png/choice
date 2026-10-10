@@ -181,6 +181,22 @@ function renderAttendanceWidget(attendance = []) {
     `;
   }).join("");
 
+  const totalSaved = attendance.length;
+  const pendingCount = attendance.filter(a => a.approvalStatus === "Pending Approval").length;
+
+  widget.innerHTML += `
+    ${userIsOwner && pendingCount > 0 ? `
+      <div style="margin-top: 0.65rem; padding: 0.45rem 0.65rem; background: #FFFBEB; border: 1px solid #FDE68A; border-radius: var(--radius-sm); font-size: 0.78rem; color: #92400E; display: flex; align-items: center; justify-content: space-between;">
+        <span><strong>${pendingCount}</strong> entry awaiting approval</span>
+        <a href="attendance.html" style="color: #B45309; font-weight: 600; text-decoration: underline;">Review</a>
+      </div>
+    ` : ''}
+    <div style="margin-top: 0.75rem; padding-top: 0.65rem; border-top: 1px solid #EEE; display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem;">
+      <span style="color: var(--muted);">${totalSaved} total date records saved</span>
+      <a href="attendance.html" style="color: var(--brand-red); font-weight: 600; text-decoration: none;">Full History & Logs &rarr;</a>
+    </div>
+  `;
+
   // Attach quick approve button click listeners safely without inline onclick
   widget.querySelectorAll(".quick-approve-att-btn").forEach(btn => {
     btn.addEventListener("click", () => {
