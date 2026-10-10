@@ -185,6 +185,12 @@
 
         <!-- 1. SIGN IN VIEW -->
         <div id="view-login" class="auth-view active">
+          <div id="login-error-alert" style="display: none; background: #FEF2F2; border: 1px solid #FCA5A5; color: #991B1B; padding: 0.75rem 0.9rem; border-radius: var(--radius-md); font-size: 0.85rem; margin-bottom: 1.15rem; line-height: 1.4;">
+            <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <span id="login-error-text">Invalid email or password. Please verify your credentials.</span>
+            </div>
+          </div>
           <form id="login-form">
             <div class="form-group">
               <label class="form-label" for="login-email">Email Address</label>
@@ -412,21 +418,49 @@
       submitBtn.disabled = true;
       submitBtn.textContent = "Signing In...";
 
+      const errorAlert = document.getElementById("login-error-alert");
+      const errorText = document.getElementById("login-error-text");
+      const pwdInput = document.getElementById("login-password");
+
+      if (errorAlert) errorAlert.style.display = "none";
+      if (pwdInput) pwdInput.style.borderColor = "";
+
       try {
         const res = await login(email, pwd);
         if (res.success) {
           showToast(`Welcome back, ${res.user.name}!`);
           setTimeout(() => window.location.href = "dashboard.html", 400);
         } else {
-          showToast(res.error, "danger");
+          const errMsg = res.error || "Incorrect email or password. Please verify your credentials.";
+          if (errorAlert && errorText) {
+            errorText.textContent = errMsg;
+            errorAlert.style.display = "block";
+          }
+          if (pwdInput) {
+            pwdInput.style.borderColor = "#DC2626";
+            pwdInput.focus();
+            pwdInput.select();
+          }
+          showToast(errMsg, "danger");
           submitBtn.disabled = false;
           submitBtn.textContent = "Sign In to Dashboard";
         }
       } catch (err) {
-        showToast(err.message || "Login failed", "danger");
+        const errMsg = err.message || "Login failed. Please try again.";
+        if (errorAlert && errorText) {
+          errorText.textContent = errMsg;
+          errorAlert.style.display = "block";
+        }
+        showToast(errMsg, "danger");
         submitBtn.disabled = false;
         submitBtn.textContent = "Sign In to Dashboard";
       }
+    });
+
+    document.getElementById("login-password")?.addEventListener("input", () => {
+      const errorAlert = document.getElementById("login-error-alert");
+      if (errorAlert) errorAlert.style.display = "none";
+      document.getElementById("login-password").style.borderColor = "";
     });
 
     // 2. Forgot Password Request Handler (Email OTP / Link via Supabase)

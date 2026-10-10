@@ -150,21 +150,24 @@
 
           <!-- Dates & Times -->
           <div style="background: #F9F9F9; padding: 0.9rem; border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 1.1rem;">
-            <div style="font-weight: 700; font-size: 0.85rem; margin-bottom: 0.65rem; color: var(--brand-red);">Function Reservation Dates & Timings</div>
+            <div style="font-weight: 700; font-size: 0.85rem; margin-bottom: 0.65rem; color: var(--brand-red);">Function Reservation Date & Timings</div>
             <div class="form-row">
               <div class="form-col">
                 <label class="form-label" for="reservation-date">Reservation Date *</label>
                 <input type="date" id="reservation-date" class="form-control" required>
               </div>
               <div class="form-col">
-                <label class="form-label" for="from-datetime">From (Date & Time) *</label>
-                <input type="datetime-local" id="from-datetime" class="form-control" required>
+                <label class="form-label" for="from-time">From (Start Time) *</label>
+                <input type="time" id="from-time" class="form-control" value="08:00" required>
               </div>
               <div class="form-col">
-                <label class="form-label" for="to-datetime">To (Date & Time) *</label>
-                <input type="datetime-local" id="to-datetime" class="form-control" required>
+                <label class="form-label" for="to-time">To (End Time) *</label>
+                <input type="time" id="to-time" class="form-control" value="16:00" required>
               </div>
             </div>
+            <!-- Hidden inputs maintaining compatibility with automation scripts & DB format -->
+            <input type="hidden" id="from-datetime">
+            <input type="hidden" id="to-datetime">
           </div>
 
           <!-- Line Items Table (Matches Exact Paper Receipt) -->

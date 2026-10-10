@@ -290,7 +290,16 @@ function openBookingModal(booking = null, defaultDate = null) {
     document.getElementById("customer-phone2").value = booking.phone2 || "";
     document.getElementById("booking-reference").value = booking.reference || "";
     document.getElementById("event-desc").value = booking.eventDesc || "";
-    document.getElementById("reservation-date").value = booking.reservationDate || "";
+    const resDate = booking.reservationDate || (booking.fromDateTime ? booking.fromDateTime.split('T')[0] : '');
+    document.getElementById("reservation-date").value = resDate;
+
+    const fromTime = booking.fromDateTime ? booking.fromDateTime.split('T')[1]?.slice(0, 5) : '08:00';
+    const toTime = booking.toDateTime ? booking.toDateTime.split('T')[1]?.slice(0, 5) : '16:00';
+    const fromTimeEl = document.getElementById("from-time");
+    const toTimeEl = document.getElementById("to-time");
+    if (fromTimeEl) fromTimeEl.value = fromTime || '08:00';
+    if (toTimeEl) toTimeEl.value = toTime || '16:00';
+
     document.getElementById("from-datetime").value = toDatetimeLocal(booking.fromDateTime);
     document.getElementById("to-datetime").value = toDatetimeLocal(booking.toDateTime);
     document.getElementById("booking-status").value = booking.status || "Confirmed";
@@ -324,6 +333,10 @@ function openBookingModal(booking = null, defaultDate = null) {
 
     const resDate = defaultDate || new Date().toISOString().split("T")[0];
     document.getElementById("reservation-date").value = resDate;
+    const fromTimeEl = document.getElementById("from-time");
+    const toTimeEl = document.getElementById("to-time");
+    if (fromTimeEl) fromTimeEl.value = "08:00";
+    if (toTimeEl) toTimeEl.value = "16:00";
     document.getElementById("from-datetime").value = `${resDate}T08:00`;
     document.getElementById("to-datetime").value = `${resDate}T16:00`;
     document.getElementById("booking-status").value = "Confirmed";
@@ -407,8 +420,19 @@ function handleSaveBooking() {
   const reference = document.getElementById("booking-reference").value.trim();
   const eventDesc = document.getElementById("event-desc").value.trim();
   const reservationDate = document.getElementById("reservation-date").value;
-  const fromDateTime = document.getElementById("from-datetime").value;
-  const toDateTime = document.getElementById("to-datetime").value;
+  const fromTime = document.getElementById("from-time")?.value || "08:00";
+  const toTime = document.getElementById("to-time")?.value || "16:00";
+
+  let fromDateTime = document.getElementById("from-datetime").value;
+  let toDateTime = document.getElementById("to-datetime").value;
+  if (reservationDate && fromTime) {
+    fromDateTime = `${reservationDate}T${fromTime}`;
+    document.getElementById("from-datetime").value = fromDateTime;
+  }
+  if (reservationDate && toTime) {
+    toDateTime = `${reservationDate}T${toTime}`;
+    document.getElementById("to-datetime").value = toDateTime;
+  }
   const status = document.getElementById("booking-status").value;
 
   if (fromDateTime && toDateTime && new Date(toDateTime).getTime() <= new Date(fromDateTime).getTime()) {
