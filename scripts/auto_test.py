@@ -32,7 +32,6 @@ PAGES = [
     "checklists.html",
     "compliance.html",
     "directory.html",
-    "certificate.html",
     "qr.html"
 ]
 
