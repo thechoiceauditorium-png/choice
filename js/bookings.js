@@ -123,8 +123,12 @@ function renderCalendarView(bookings = []) {
     const cellDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     const isToday = cellDateStr === todayStr;
 
-    // Find bookings on this date
-    const dayBookings = bookings.filter(b => b.reservationDate === cellDateStr);
+    // Find bookings spanning this date
+    const dayBookings = bookings.filter(b => {
+      const fromD = (b.fromDateTime ? b.fromDateTime.split('T')[0] : b.reservationDate) || '';
+      const toD = (b.toDateTime ? b.toDateTime.split('T')[0] : fromD) || fromD;
+      return (cellDateStr >= fromD && cellDateStr <= toD) || b.reservationDate === cellDateStr;
+    });
 
     let eventPillsHtml = "";
     dayBookings.forEach(b => {
@@ -202,12 +206,22 @@ function toDatetimeLocal(val) {
   return String(val).replace(" ", "T").slice(0, 16);
 }
 
-  tbody.innerHTML = filtered.map(b => `
+  tbody.innerHTML = filtered.map(b => {
+    const fromD = b.fromDateTime ? b.fromDateTime.split('T')[0] : b.reservationDate;
+    const toD = b.toDateTime ? b.toDateTime.split('T')[0] : fromD;
+    const dateLabel = (fromD && toD && fromD !== toD)
+      ? `${formatDate(fromD)} – ${formatDate(toD)}`
+      : formatDate(fromD || b.reservationDate);
+    const timeLabel = (b.fromDateTime && b.toDateTime)
+      ? `${b.fromDateTime.split('T')[1]?.slice(0, 5) || ''} to ${b.toDateTime.split('T')[1]?.slice(0, 5) || ''}`
+      : '';
+
+    return `
     <tr>
       <td><strong>#${escapeHtml(b.bookingNo || '')}</strong></td>
       <td>
-        <div><strong>${formatDate(b.reservationDate)}</strong></div>
-        <div style="font-size: 0.75rem; color: #666;">${b.fromDateTime ? escapeHtml(b.fromDateTime.replace('T', ' ').slice(0, 16)) : ''} to ${b.toDateTime ? escapeHtml(b.toDateTime.replace('T', ' ').slice(0, 16)) : ''}</div>
+        <div><strong>${dateLabel}</strong></div>
+        <div style="font-size: 0.75rem; color: #666;">${escapeHtml(timeLabel)}</div>
       </td>
       <td>
         <div style="font-weight: 600;">${escapeHtml(b.customerName || '')}</div>
@@ -261,6 +275,18 @@ function initBookingForm() {
   document.getElementById("booking-search")?.addEventListener("input", () => renderListView(dbStore.get("bookings")));
   document.getElementById("booking-status-filter")?.addEventListener("change", () => renderListView(dbStore.get("bookings")));
 
+  // Date range auto-sync: when from-date changes, set to-date if empty or same
+  const fromDateInput = document.getElementById("from-date");
+  const toDateInput = document.getElementById("to-date");
+  const resDateInput = document.getElementById("reservation-date");
+
+  fromDateInput?.addEventListener("change", () => {
+    if (resDateInput) resDateInput.value = fromDateInput.value;
+    if (toDateInput && (!toDateInput.value || toDateInput.value < fromDateInput.value)) {
+      toDateInput.value = fromDateInput.value;
+    }
+  });
+
   // Calculate totals dynamically on input
   document.querySelectorAll(".line-item-amt, .line-item-adv, #calc-tax").forEach(inp => {
     inp.addEventListener("input", recalculateFormFinancials);
@@ -290,8 +316,17 @@ function openBookingModal(booking = null, defaultDate = null) {
     document.getElementById("customer-phone2").value = booking.phone2 || "";
     document.getElementById("booking-reference").value = booking.reference || "";
     document.getElementById("event-desc").value = booking.eventDesc || "";
-    const resDate = booking.reservationDate || (booking.fromDateTime ? booking.fromDateTime.split('T')[0] : '');
-    document.getElementById("reservation-date").value = resDate;
+
+    const fromDate = booking.fromDateTime ? booking.fromDateTime.split('T')[0] : (booking.reservationDate || '');
+    const toDate = booking.toDateTime ? booking.toDateTime.split('T')[0] : fromDate;
+    const resDate = fromDate || booking.reservationDate || '';
+
+    const fromDateEl = document.getElementById("from-date");
+    const toDateEl = document.getElementById("to-date");
+    const resDateEl = document.getElementById("reservation-date");
+    if (fromDateEl) fromDateEl.value = fromDate;
+    if (toDateEl) toDateEl.value = toDate;
+    if (resDateEl) resDateEl.value = resDate;
 
     const fromTime = booking.fromDateTime ? booking.fromDateTime.split('T')[1]?.slice(0, 5) : '08:00';
     const toTime = booking.toDateTime ? booking.toDateTime.split('T')[1]?.slice(0, 5) : '16:00';
@@ -332,7 +367,13 @@ function openBookingModal(booking = null, defaultDate = null) {
     document.getElementById("booking-no").value = maxNo + 1;
 
     const resDate = defaultDate || new Date().toISOString().split("T")[0];
-    document.getElementById("reservation-date").value = resDate;
+    const fromDateEl = document.getElementById("from-date");
+    const toDateEl = document.getElementById("to-date");
+    const resDateEl = document.getElementById("reservation-date");
+    if (fromDateEl) fromDateEl.value = resDate;
+    if (toDateEl) toDateEl.value = resDate;
+    if (resDateEl) resDateEl.value = resDate;
+
     const fromTimeEl = document.getElementById("from-time");
     const toTimeEl = document.getElementById("to-time");
     if (fromTimeEl) fromTimeEl.value = "08:00";
@@ -418,25 +459,23 @@ function handleSaveBooking() {
   const phone1 = document.getElementById("customer-phone1").value.trim();
   const phone2 = document.getElementById("customer-phone2").value.trim();
   const reference = document.getElementById("booking-reference").value.trim();
-  const eventDesc = document.getElementById("event-desc").value.trim();
-  const reservationDate = document.getElementById("reservation-date").value;
+  const fromDate = document.getElementById("from-date")?.value || document.getElementById("reservation-date")?.value || "";
+  const toDate = document.getElementById("to-date")?.value || fromDate;
+  const reservationDate = fromDate;
+  if (document.getElementById("reservation-date")) {
+    document.getElementById("reservation-date").value = fromDate;
+  }
   const fromTime = document.getElementById("from-time")?.value || "08:00";
   const toTime = document.getElementById("to-time")?.value || "16:00";
 
-  let fromDateTime = document.getElementById("from-datetime").value;
-  let toDateTime = document.getElementById("to-datetime").value;
-  if (reservationDate && fromTime) {
-    fromDateTime = `${reservationDate}T${fromTime}`;
-    document.getElementById("from-datetime").value = fromDateTime;
-  }
-  if (reservationDate && toTime) {
-    toDateTime = `${reservationDate}T${toTime}`;
-    document.getElementById("to-datetime").value = toDateTime;
-  }
+  let fromDateTime = `${fromDate}T${fromTime}`;
+  let toDateTime = `${toDate}T${toTime}`;
+  document.getElementById("from-datetime").value = fromDateTime;
+  document.getElementById("to-datetime").value = toDateTime;
   const status = document.getElementById("booking-status").value;
 
   if (fromDateTime && toDateTime && new Date(toDateTime).getTime() <= new Date(fromDateTime).getTime()) {
-    showToast("Event end time must be later than start time.", "warning");
+    showToast("Event end date & time must be later than start date & time.", "warning");
     return;
   }
 

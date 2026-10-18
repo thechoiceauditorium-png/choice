@@ -37,17 +37,36 @@ export function evaluateNotifications() {
     }
   });
 
-  // 2. Check compliance items due within 30 days
+  // 2. Check compliance items (Pending/Due Soon within leadDays or Overdue)
+  const todayForNotif = new Date();
+  todayForNotif.setHours(0, 0, 0, 0);
+
   compliance.forEach(c => {
-    if (c.dueDate) {
-      const daysDiff = Math.ceil((new Date(c.dueDate) - new Date()) / (1000 * 60 * 60 * 24));
-      if (daysDiff >= 0 && daysDiff <= (c.leadDays || 30)) {
-        const key = `notif-comp-${c.id}`;
+    if (c.dueDate && c.status !== "Completed") {
+      const due = new Date(c.dueDate + "T00:00:00");
+      if (isNaN(due.getTime())) return;
+      const daysDiff = Math.ceil((due.getTime() - todayForNotif.getTime()) / (1000 * 60 * 60 * 24));
+      const lead = Number(c.leadDays) || 10;
+
+      if (daysDiff < 0) {
+        const key = `notif-comp-overdue-${c.id}-${c.dueDate}`;
         if (!newNotifs.some(n => n.id === key)) {
           newNotifs.unshift({
             id: key,
-            title: `Statutory Due: ${c.title}`,
-            message: `Due on ${c.dueDate}. Responsible: ${c.responsible}.`,
+            title: `Statutory / Bill Overdue: ${c.title}`,
+            message: `Was due on ${c.dueDate}. Responsible: ${c.responsible}. Please complete immediately.`,
+            type: "compliance",
+            time: "Overdue alert",
+            read: false
+          });
+        }
+      } else if (daysDiff <= lead) {
+        const key = `notif-comp-${c.id}-${c.dueDate}`;
+        if (!newNotifs.some(n => n.id === key)) {
+          newNotifs.unshift({
+            id: key,
+            title: `Bill / Statutory Due Soon: ${c.title}`,
+            message: `Due on ${c.dueDate} (${daysDiff} day${daysDiff === 1 ? '' : 's'} remaining). Responsible: ${c.responsible}.`,
             type: "compliance",
             time: "Statutory alert",
             read: false

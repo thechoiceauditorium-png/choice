@@ -76,6 +76,64 @@
     </div>
   </main>
 
+  <!-- Modal: Admin Edit Attendance Record -->
+  <div class="modal-backdrop" id="edit-attendance-modal">
+    <div class="modal-card" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3>Admin Attendance Override / Edit</h3>
+        <button class="btn-icon" id="close-edit-att-modal-btn">X</button>
+      </div>
+      <div class="modal-body">
+        <form id="edit-attendance-form">
+          <input type="hidden" id="edit-att-id">
+          <input type="hidden" id="edit-att-worker-id">
+
+          <div class="form-group">
+            <label class="form-label">Staff Member</label>
+            <input type="text" id="edit-att-worker-name" class="form-control" readonly style="background: #F5F5F5; font-weight: 600;">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit-att-date">Attendance Date *</label>
+            <input type="date" id="edit-att-date" class="form-control" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Attendance Status *</label>
+            <div style="display: flex; gap: 1rem; margin-top: 0.25rem;">
+              <label style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.88rem; cursor: pointer;">
+                <input type="radio" name="edit_att_status" value="present" checked> Present
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.88rem; cursor: pointer;">
+                <input type="radio" name="edit_att_status" value="half-day"> Half-Day
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.88rem; cursor: pointer;">
+                <input type="radio" name="edit_att_status" value="absent"> Absent
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit-att-note">Admin Notes / Remarks</label>
+            <textarea id="edit-att-note" class="form-control" rows="2" placeholder="Reason for edit or override..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit-att-approval">Approval Decision *</label>
+            <select id="edit-att-approval" class="form-control" required>
+              <option value="Approved">Approved (Verified by Admin)</option>
+              <option value="Pending Approval">Pending Approval</option>
+            </select>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="cancel-edit-att-modal-btn">Cancel</button>
+        <button type="button" class="btn btn-primary" id="save-edit-att-btn">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast-mount"></div>
 
   <script type="module" src="js/attendance.js"></script>

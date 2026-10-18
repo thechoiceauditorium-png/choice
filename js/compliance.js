@@ -46,18 +46,23 @@ function initModals() {
 
 function updateComplianceStatuses(compliance = []) {
   const today = new Date();
+  today.setHours(0, 0, 0, 0);
   let changed = false;
 
   compliance.forEach(item => {
     if (!item.dueDate || item.status === "Completed") return;
-    const due = new Date(item.dueDate);
-    const diffDays = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
-    const lead = item.leadDays || 15;
+    const due = new Date(item.dueDate + "T00:00:00");
+    if (isNaN(due.getTime())) return;
+
+    const diffDays = Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    const lead = Number(item.leadDays) || 10;
 
     let newStatus = "Upcoming";
     if (diffDays < 0) {
+      // Overdue ONLY after due date has strictly passed
       newStatus = "Overdue";
     } else if (diffDays <= lead) {
+      // Pending / Due Soon only within the lead window (e.g. last 10 days before due date)
       newStatus = "Due Soon";
     }
 
@@ -210,22 +215,45 @@ function handleConfirmDone() {
   dbStore.add("compliance_history", logEntry);
 
   // 2. Advance active compliance obligation date for next cycle
-  const currentDue = new Date(item.dueDate);
-  let nextCycleMsg = "";
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-  if (item.recurrence === "Half-yearly") {
-    currentDue.setMonth(currentDue.getMonth() + 6);
-    item.dueDate = currentDue.toISOString().split("T")[0];
+  // If previous dueDate is in the future, advance from dueDate; if in past, advance from completedDate / today
+  let baseDate = new Date();
+  if (item.dueDate) {
+    const parsed = new Date(item.dueDate + "T00:00:00");
+    if (!isNaN(parsed.getTime())) {
+      baseDate = parsed > today ? parsed : today;
+    }
+  }
+
+  const nextDue = new Date(baseDate);
+  let nextCycleMsg = "";
+  const rec = (item.recurrence || "").toLowerCase().trim();
+
+  if (rec === "2 months" || rec.includes("2 month")) {
+    nextDue.setMonth(nextDue.getMonth() + 2);
+    item.dueDate = nextDue.toISOString().split("T")[0];
     item.status = "Upcoming";
     nextCycleMsg = ` Next cycle due on ${formatDate(item.dueDate)}.`;
-  } else if (item.recurrence === "Annual") {
-    currentDue.setFullYear(currentDue.getFullYear() + 1);
-    item.dueDate = currentDue.toISOString().split("T")[0];
+  } else if (rec === "quarterly" || rec.includes("quarter")) {
+    nextDue.setMonth(nextDue.getMonth() + 3);
+    item.dueDate = nextDue.toISOString().split("T")[0];
     item.status = "Upcoming";
     nextCycleMsg = ` Next cycle due on ${formatDate(item.dueDate)}.`;
-  } else if (item.recurrence === "Monthly") {
-    currentDue.setMonth(currentDue.getMonth() + 1);
-    item.dueDate = currentDue.toISOString().split("T")[0];
+  } else if (rec === "monthly" || rec.includes("month")) {
+    nextDue.setMonth(nextDue.getMonth() + 1);
+    item.dueDate = nextDue.toISOString().split("T")[0];
+    item.status = "Upcoming";
+    nextCycleMsg = ` Next cycle due on ${formatDate(item.dueDate)}.`;
+  } else if (rec === "half-yearly" || rec.includes("half")) {
+    nextDue.setMonth(nextDue.getMonth() + 6);
+    item.dueDate = nextDue.toISOString().split("T")[0];
+    item.status = "Upcoming";
+    nextCycleMsg = ` Next cycle due on ${formatDate(item.dueDate)}.`;
+  } else if (rec === "annual" || rec.includes("annual") || rec.includes("year")) {
+    nextDue.setFullYear(nextDue.getFullYear() + 1);
+    item.dueDate = nextDue.toISOString().split("T")[0];
     item.status = "Upcoming";
     nextCycleMsg = ` Next cycle due on ${formatDate(item.dueDate)}.`;
   } else {
@@ -330,13 +358,13 @@ function openComplianceModal(item = null) {
     document.getElementById("comp-recurrence").value = item.recurrence || "Annual";
     document.getElementById("comp-due-date").value = item.dueDate || "";
     document.getElementById("comp-responsible").value = item.responsible || defaultResp;
-    document.getElementById("comp-lead").value = item.leadDays || 15;
+    document.getElementById("comp-lead").value = item.leadDays || 10;
     document.getElementById("comp-notes").value = item.notes || "";
   } else {
-    titleEl.textContent = "New Statutory Obligation";
+    titleEl.textContent = "New Statutory / Utility Obligation";
     document.getElementById("comp-id").value = "";
-    document.getElementById("comp-recurrence").value = "Annual";
-    document.getElementById("comp-lead").value = 15;
+    document.getElementById("comp-recurrence").value = "2 Months";
+    document.getElementById("comp-lead").value = 10;
   }
 
   openModal("compliance-modal");
@@ -354,8 +382,22 @@ function handleSaveCompliance() {
   const recurrence = document.getElementById("comp-recurrence").value;
   const dueDate = document.getElementById("comp-due-date").value;
   const responsible = document.getElementById("comp-responsible").value;
-  const leadDays = Number(document.getElementById("comp-lead").value) || 15;
+  const leadDays = Number(document.getElementById("comp-lead").value) || 10;
   const notes = document.getElementById("comp-notes").value.trim();
+
+  // Strict initial status calculation
+  let initialStatus = "Upcoming";
+  if (dueDate) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const due = new Date(dueDate + "T00:00:00");
+    const diffDays = Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays < 0) {
+      initialStatus = "Overdue";
+    } else if (diffDays <= leadDays) {
+      initialStatus = "Due Soon";
+    }
+  }
 
   const data = {
     title,
@@ -364,7 +406,7 @@ function handleSaveCompliance() {
     responsible,
     leadDays,
     notes,
-    status: "Upcoming"
+    status: initialStatus
   };
 
   if (id) {

@@ -162,11 +162,13 @@
 
           <div class="form-row">
             <div class="form-col">
-              <label class="form-label" for="comp-recurrence">Recurrence *</label>
+              <label class="form-label" for="comp-recurrence">Recurrence / Billing Cycle *</label>
               <select id="comp-recurrence" class="form-control" required>
+                <option value="2 Months">2 Months (Bi-monthly)</option>
+                <option value="Quarterly">Quarterly (3 Months)</option>
+                <option value="Monthly">Monthly</option>
                 <option value="Half-yearly">Half-yearly (6 Months)</option>
                 <option value="Annual">Annual (1 Year)</option>
-                <option value="Monthly">Monthly</option>
                 <option value="One-time">One-time</option>
               </select>
             </div>
@@ -189,7 +191,7 @@
             </div>
             <div class="form-col">
               <label class="form-label" for="comp-lead">Reminder Lead Time (Days)</label>
-              <input type="number" id="comp-lead" class="form-control" value="15" min="1" max="90">
+              <input type="number" id="comp-lead" class="form-control" value="10" min="1" max="90">
             </div>
           </div>
 

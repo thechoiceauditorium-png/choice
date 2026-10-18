@@ -16,12 +16,48 @@
         <h2>Team Directory & Emergency Contacts</h2>
         <span class="page-title-badge">Click-to-Call & Vendor List</span>
       </div>
-      <button class="btn btn-primary btn-sm" id="new-contact-btn">+ Add Vendor / Emergency Contact</button>
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <button class="btn btn-outline btn-sm" id="abin-add-user-btn" style="display: none; border-color: #6A1B9A; color: #6A1B9A; font-weight: 600;">+ Provision User & Password (Abin)</button>
+        <button class="btn btn-primary btn-sm" id="new-contact-btn">+ Add Vendor / Emergency Contact</button>
+      </div>
+    </div>
+
+    <!-- Director Abin User & Password Management Console -->
+    <div class="card" id="abin-management-card" style="margin-bottom: 2rem; display: none; border-top: 3px solid #6A1B9A;">
+      <div class="card-header" style="justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+        <div>
+          <h3 class="card-title" style="color: #6A1B9A;">User Logins & Role Management (Director Abin Control)</h3>
+          <div style="font-size: 0.78rem; color: #666; margin-top: 2px;">Direct control to provision staff, assign roles (Manager/Worker/Owner), and set login passwords directly</div>
+        </div>
+        <button class="btn btn-sm btn-primary" id="abin-open-create-user-btn" style="background: #6A1B9A; border-color: #6A1B9A;">+ Provision New User</button>
+      </div>
+      <div class="card-body" style="padding: 0;">
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Staff Name</th>
+                <th>Role</th>
+                <th>Designation</th>
+                <th>Email / Login</th>
+                <th>Phone</th>
+                <th class="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="abin-users-table-tbody">
+              <!-- Injected via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <!-- Core Team Cards -->
     <div style="margin-bottom: 2rem;">
-      <h3 style="font-size: 1.1rem; margin-bottom: 1rem; color: var(--brand-red);">Core Management & Operations Team</h3>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h3 style="font-size: 1.1rem; color: var(--brand-red); margin: 0;">Core Management & Operations Team</h3>
+        <span style="font-size: 0.78rem; color: var(--muted);" id="team-edit-hint"></span>
+      </div>
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem;" id="core-team-container">
         <!-- Rendered by JS -->
       </div>
@@ -105,6 +141,108 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" id="cancel-contact-modal-btn">Cancel</button>
         <button type="button" class="btn btn-primary" id="save-contact-btn">Save Contact</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Edit Core Team Member Details (Admin) -->
+  <div class="modal-backdrop" id="edit-team-user-modal">
+    <div class="modal-card" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 id="edit-team-user-modal-title">Edit Team Member Details</h3>
+        <button class="btn-icon" id="close-team-modal-btn">X</button>
+      </div>
+      <div class="modal-body">
+        <form id="edit-team-user-form">
+          <input type="hidden" id="edit-team-user-id">
+
+          <div class="form-group">
+            <label class="form-label" for="edit-team-name">Full Name *</label>
+            <input type="text" id="edit-team-name" class="form-control" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-col">
+              <label class="form-label" for="edit-team-title">Title / Designation *</label>
+              <input type="text" id="edit-team-title" class="form-control" placeholder="e.g. Director / Manager / Assistant" required>
+            </div>
+            <div class="form-col">
+              <label class="form-label" for="edit-team-role">Access Role *</label>
+              <select id="edit-team-role" class="form-control" required>
+                <option value="owner">Owner / Director (Full Access)</option>
+                <option value="worker">Worker / Staff (Operational Access)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit-team-phone">Phone Number (Directory) *</label>
+            <input type="tel" id="edit-team-phone" class="form-control" placeholder="10-digit phone number" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit-team-email">Email Address</label>
+            <input type="email" id="edit-team-email" class="form-control" placeholder="name@choiceauditorium.com">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="cancel-team-modal-btn">Cancel</button>
+        <button type="button" class="btn btn-primary" id="save-team-user-btn">Save Team Details</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Director Abin User Provisioning & Password Control -->
+  <div class="modal-backdrop" id="abin-user-modal">
+    <div class="modal-card" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3 id="abin-modal-title" style="color: #6A1B9A;">Provision New User & Password (Director Abin)</h3>
+        <button class="btn-icon" id="close-abin-modal-btn">X</button>
+      </div>
+      <div class="modal-body">
+        <form id="abin-user-form">
+          <input type="hidden" id="abin-edit-mode" value="create">
+
+          <div class="form-group">
+            <label class="form-label" for="abin-user-name">Staff Name *</label>
+            <input type="text" id="abin-user-name" class="form-control" placeholder="e.g. Rahul Nair" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-col">
+              <label class="form-label" for="abin-user-role">Role *</label>
+              <select id="abin-user-role" class="form-control" required>
+                <option value="worker">Worker / Staff</option>
+                <option value="owner">Owner / Director</option>
+              </select>
+            </div>
+            <div class="form-col">
+              <label class="form-label" for="abin-user-title">Designation *</label>
+              <input type="text" id="abin-user-title" class="form-control" placeholder="e.g. Manager / Assistant / Electrician" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="abin-user-email">Email / Login ID *</label>
+            <input type="email" id="abin-user-email" class="form-control" placeholder="user@choiceauditorium.com" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="abin-user-phone">Phone Number *</label>
+            <input type="tel" id="abin-user-phone" class="form-control" placeholder="10-digit mobile number" required>
+          </div>
+
+          <div class="form-group" style="background: #F3E5F5; padding: 0.85rem; border-radius: 4px; border: 1px solid #CE93D8;">
+            <label class="form-label" for="abin-user-password" style="color: #4A148C; font-weight: 700;">Password (Set by Director Abin) *</label>
+            <input type="text" id="abin-user-password" class="form-control" placeholder="Minimum 6 characters" required minlength="6" style="background: #FFF; font-family: monospace; font-size: 0.95rem;">
+            <div style="font-size: 0.75rem; color: #6A1B9A; margin-top: 4px;">Director Abin sets the password directly for the worker/manager. No reset link needed.</div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="cancel-abin-modal-btn">Cancel</button>
+        <button type="button" class="btn btn-primary" id="save-abin-user-btn" style="background: #6A1B9A; border-color: #6A1B9A;">Save & Issue Credentials</button>
       </div>
     </div>
   </div>

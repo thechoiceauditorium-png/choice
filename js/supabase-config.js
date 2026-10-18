@@ -77,7 +77,7 @@ export const TABLE_COLUMNS = {
     "id", "title", "message", "type", "time", "read", "createdAt"
   ],
   team_users: [
-    "id", "name", "role", "title", "phone", "email", "avatar", "createdAt"
+    "id", "name", "role", "title", "phone", "email", "avatar", "auth_user_id", "createdAt"
   ]
 };
 

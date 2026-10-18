@@ -50,8 +50,8 @@ function renderBookingsSection(bookings = []) {
       <tr>
         <td><strong>#${escapeHtml(b.bookingNo || '')}</strong></td>
         <td>
-          <div><strong>${formatDate(b.reservationDate)}</strong></div>
-          <div style="font-size: 0.75rem; color: #666;">${b.fromDateTime ? escapeHtml(b.fromDateTime.split('T')[1] || '') : ''} - ${b.toDateTime ? escapeHtml(b.toDateTime.split('T')[1] || '') : ''}</div>
+          <div><strong>${(b.fromDateTime && b.toDateTime && b.fromDateTime.split('T')[0] !== b.toDateTime.split('T')[0]) ? `${formatDate(b.fromDateTime.split('T')[0])} – ${formatDate(b.toDateTime.split('T')[0])}` : formatDate(b.reservationDate)}</strong></div>
+          <div style="font-size: 0.75rem; color: #666;">${b.fromDateTime ? escapeHtml(b.fromDateTime.split('T')[1]?.slice(0, 5) || '') : ''} - ${b.toDateTime ? escapeHtml(b.toDateTime.split('T')[1]?.slice(0, 5) || '') : ''}</div>
         </td>
         <td>
           <div style="font-weight: 600;">${escapeHtml(b.customerName || '')}</div>

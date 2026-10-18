@@ -34,8 +34,21 @@ PAGES = [
     "directory.html"
 ]
 
-SUPABASE_URL = "https://kaxcbzdogwrfbndsnqff.supabase.co"
-SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtheGNiemRvZ3dyZmJuZHNucWZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEzNjE0OTcsImV4cCI6MjEwNjkzNzQ5N30.41jZzbKS1ApxhMdQMRlnKaUue6bY0AmpAILs0r63B8E"
+def load_env():
+    env = {}
+    env_file = os.path.join(BASE_DIR, ".env")
+    if os.path.exists(env_file):
+        with open(env_file, "r") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    k, v = line.split("=", 1)
+                    env[k.strip()] = v.strip().strip("'\"")
+    return env
+
+_env = load_env()
+SUPABASE_URL = os.environ.get("SUPABASE_URL", _env.get("SUPABASE_URL", ""))
+SUPABASE_ANON = os.environ.get("SUPABASE_ANON_KEY", _env.get("SUPABASE_ANON_KEY", ""))
 
 TABLES = [
     "bookings", "ledger", "compliance", "compliance_history",

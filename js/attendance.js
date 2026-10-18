@@ -4,7 +4,7 @@
  */
 
 import { requireAuth, isOwner, isWorker, getCurrentUser } from "./auth.js";
-import { renderHeader, formatDate, formatDateTime, showToast, escapeHtml, sanitizeTel } from "./common.js";
+import { renderHeader, formatDate, formatDateTime, showToast, openModal, closeModal, escapeHtml, sanitizeTel } from "./common.js";
 import { dbStore } from "./supabase-config.js";
 import { evaluateNotifications } from "./notifications.js";
 
@@ -24,6 +24,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   evaluateNotifications();
 
   initDateControls();
+  initEditAttendanceModal();
   checkRolePermissions();
 
   // Expose methods for UI buttons
@@ -446,11 +447,18 @@ function renderMonthlyAttendance(attendance = []) {
       : `<span class="badge badge-approved">Approved</span> <div style="font-size: 0.7rem; color: #666; margin-top: 2px;">by ${escapeHtml(a.approvedBy || 'Owner')}</div>`;
 
     let actionCell = `<span style="font-size: 0.78rem; color: #999;">${a.approvalStatus === 'Approved' ? 'Confirmed' : '—'}</span>`;
-    if (userIsOwner && isPending) {
+    if (userIsOwner) {
       actionCell = `
-        <button class="btn btn-sm btn-success att-history-approve-btn" data-record-id="${escapeHtml(a.id)}">
-          Approve
-        </button>
+        <div style="display: inline-flex; gap: 0.35rem; align-items: center;">
+          ${isPending ? `
+            <button class="btn btn-sm btn-success att-history-approve-btn" data-record-id="${escapeHtml(a.id)}">
+              Approve
+            </button>
+          ` : ''}
+          <button class="btn btn-sm btn-secondary att-history-edit-btn" data-record-id="${escapeHtml(a.id)}">
+            Edit
+          </button>
+        </div>
       `;
     }
 
@@ -476,4 +484,78 @@ function renderMonthlyAttendance(attendance = []) {
       approveByRecordId(btn.dataset.recordId);
     });
   });
+
+  tbody.querySelectorAll(".att-history-edit-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      openEditAttendanceModal(btn.dataset.recordId);
+    });
+  });
+}
+
+function initEditAttendanceModal() {
+  document.getElementById("close-edit-att-modal-btn")?.addEventListener("click", () => closeModal("edit-attendance-modal"));
+  document.getElementById("cancel-edit-att-modal-btn")?.addEventListener("click", () => closeModal("edit-attendance-modal"));
+  document.getElementById("save-edit-att-btn")?.addEventListener("click", handleSaveEditAttendance);
+}
+
+function openEditAttendanceModal(recordId) {
+  if (!isOwner()) {
+    showToast("Only administrators can edit attendance records.", "danger");
+    return;
+  }
+
+  const allRecords = dbStore.get("attendance");
+  const record = allRecords.find(a => a.id === recordId);
+  if (!record) return;
+
+  document.getElementById("edit-att-id").value = record.id;
+  document.getElementById("edit-att-worker-id").value = record.workerId;
+  document.getElementById("edit-att-worker-name").value = record.workerName || "Staff Member";
+  document.getElementById("edit-att-date").value = record.date || "";
+  document.getElementById("edit-att-note").value = record.note || "";
+  document.getElementById("edit-att-approval").value = record.approvalStatus || "Approved";
+
+  const radio = document.querySelector(`input[name="edit_att_status"][value="${record.status || 'present'}"]`);
+  if (radio) radio.checked = true;
+
+  openModal("edit-attendance-modal");
+}
+
+function handleSaveEditAttendance() {
+  if (!isOwner()) {
+    showToast("Only administrators can edit attendance records.", "danger");
+    return;
+  }
+
+  const id = document.getElementById("edit-att-id").value;
+  const date = document.getElementById("edit-att-date").value;
+  const status = document.querySelector(`input[name="edit_att_status"]:checked`)?.value || "present";
+  const note = document.getElementById("edit-att-note").value.trim();
+  const approvalStatus = document.getElementById("edit-att-approval").value;
+
+  if (!date) {
+    showToast("Please choose an attendance date.", "warning");
+    return;
+  }
+
+  const currentUser = getCurrentUser();
+  const allRecords = dbStore.get("attendance");
+  const recordIndex = allRecords.findIndex(a => a.id === id);
+
+  if (recordIndex === -1) {
+    showToast("Attendance record not found.", "danger");
+    return;
+  }
+
+  allRecords[recordIndex].date = date;
+  allRecords[recordIndex].status = status;
+  allRecords[recordIndex].note = note;
+  allRecords[recordIndex].approvalStatus = approvalStatus;
+  allRecords[recordIndex].approvedBy = approvalStatus === "Approved" ? currentUser.name : null;
+  allRecords[recordIndex].approvedAt = approvalStatus === "Approved" ? new Date().toISOString() : null;
+
+  dbStore.save("attendance", allRecords);
+  evaluateNotifications();
+  closeModal("edit-attendance-modal");
+  showToast(`Attendance updated and saved for ${allRecords[recordIndex].workerName}.`, "success");
 }

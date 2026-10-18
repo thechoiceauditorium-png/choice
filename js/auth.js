@@ -123,6 +123,13 @@ export function isOwner() {
   return Boolean(verifiedUser && verifiedUser.role === "owner");
 }
 
+export function isDirectorAbin() {
+  if (!verifiedUser) return false;
+  const email = (verifiedUser.email || "").toLowerCase();
+  const name = (verifiedUser.name || "").toLowerCase();
+  return isOwner() && (email.includes("abin") || name.includes("abin") || email.includes("elby"));
+}
+
 export function isWorker() {
   return Boolean(verifiedUser && verifiedUser.role === "worker");
 }

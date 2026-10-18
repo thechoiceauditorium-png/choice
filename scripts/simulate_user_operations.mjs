@@ -25,8 +25,25 @@ const PORT = 8096;
 const CHROME_CDP = "http://127.0.0.1:9222";
 const APP_URL = `http://127.0.0.1:${PORT}`;
 
-const SUPABASE_URL = "https://kaxcbzdogwrfbndsnqff.supabase.co";
-const SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtheGNiemRvZ3dyZmJuZHNucWZmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MTM2MTQ5NywiZXhwIjoyMTA2OTM3NDk3fQ.t2bIt6znASg9UIVyhPaLRG9rsTYzzfpxae5Ifgi1LLg";
+// Load environment credentials from .env
+function loadEnv() {
+  const envPath = path.join(BASE_DIR, ".env");
+  const env = {};
+  if (fs.existsSync(envPath)) {
+    const lines = fs.readFileSync(envPath, "utf-8").split("\n");
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const [k, ...v] = trimmed.split("=");
+      env[k.trim()] = v.join("=").trim().replace(/^["']|["']$/g, "");
+    }
+  }
+  return env;
+}
+
+const envVars = loadEnv();
+const SUPABASE_URL = process.env.SUPABASE_URL || envVars.SUPABASE_URL || "";
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || envVars.SUPABASE_SERVICE_ROLE_KEY || "";
 
 // Start static HTTP server
 function startServer() {
