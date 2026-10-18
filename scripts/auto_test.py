@@ -31,7 +31,8 @@ PAGES = [
     "attendance.html",
     "checklists.html",
     "compliance.html",
-    "directory.html"
+    "directory.html",
+    "404.html"
 ]
 
 def load_env():

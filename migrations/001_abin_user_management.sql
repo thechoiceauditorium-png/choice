@@ -142,3 +142,14 @@ end;
 $$;
 
 grant execute on function public.admin_manage_user to authenticated;
+
+-- ==============================================================================
+-- PRODUCTION PERFORMANCE INDEXES (SUPABASE VIBE CODING MASTER CHECKLIST)
+-- ==============================================================================
+create index if not exists idx_bookings_dates on public.bookings ("fromDateTime", "toDateTime");
+create index if not exists idx_bookings_status on public.bookings (status);
+create index if not exists idx_attendance_date_worker on public.attendance (date, "workerId");
+create index if not exists idx_compliance_due_status on public.compliance ("dueDate", status);
+create index if not exists idx_compliance_hist_comp_date on public.compliance_history ("complianceId", "completedDate");
+create index if not exists idx_checklists_status_date on public.checklists (status, "eventDate");
+
