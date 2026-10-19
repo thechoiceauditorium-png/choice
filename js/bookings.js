@@ -201,11 +201,6 @@ function renderListView(bookings = []) {
     return;
   }
 
-function toDatetimeLocal(val) {
-  if (!val) return "";
-  return String(val).replace(" ", "T").slice(0, 16);
-}
-
   tbody.innerHTML = filtered.map(b => {
     const fromD = b.fromDateTime ? b.fromDateTime.split('T')[0] : b.reservationDate;
     const toD = b.toDateTime ? b.toDateTime.split('T')[0] : fromD;
@@ -294,6 +289,11 @@ function initBookingForm() {
 
   // Save Booking submission
   document.getElementById("save-booking-btn")?.addEventListener("click", handleSaveBooking);
+}
+
+function toDatetimeLocal(val) {
+  if (!val) return "";
+  return String(val).replace(" ", "T").slice(0, 16);
 }
 
 function openBookingModal(booking = null, defaultDate = null) {
