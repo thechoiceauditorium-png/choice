@@ -32,6 +32,7 @@ async function buildVerifiedUser(supabaseUser, sb) {
       .from("team_users")
       .select("id, name, role, title, phone, email, avatar, auth_user_id")
       .or(`auth_user_id.eq.${supabaseUser.id},email.ilike.${supabaseUser.email}`)
+      .limit(1)
       .maybeSingle();
     profile = data;
   } catch (err) {
