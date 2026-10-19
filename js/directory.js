@@ -450,9 +450,42 @@ async function handleSaveAbinUser() {
 
   try {
     const sb = await getSupabase();
-    let rpcSuccess = false;
+    let authUpdated = false;
+    let authError = null;
 
-    if (sb && sb.rpc) {
+    // 1. Call server-side Admin API (uses service role key to set password in Supabase Auth GoTrue)
+    try {
+      const { data: { session } } = sb?.auth ? await sb.auth.getSession() : { data: {} };
+      const authToken = session?.access_token || "";
+
+      const apiRes = await fetch("/api/admin/manage-user", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": authToken ? `Bearer ${authToken}` : ""
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          name,
+          role,
+          title,
+          phone
+        })
+      });
+
+      const apiData = await apiRes.json();
+      if (apiRes.ok && apiData.success) {
+        authUpdated = true;
+      } else {
+        authError = apiData.error || "Server admin API returned error.";
+      }
+    } catch (apiErr) {
+      authError = apiErr.message;
+    }
+
+    // 2. Fallback: try Postgres RPC if API endpoint unavailable
+    if (!authUpdated && sb && sb.rpc) {
       try {
         const { data, error } = await sb.rpc("admin_manage_user", {
           p_email: email,
@@ -464,16 +497,17 @@ async function handleSaveAbinUser() {
         });
 
         if (!error && data?.success) {
-          rpcSuccess = true;
-        } else if (error) {
-          console.warn("admin_manage_user RPC notice:", error.message);
+          authUpdated = true;
+          authError = null;
         }
-      } catch (err) {
-        console.warn("Could not invoke admin_manage_user RPC:", err);
-      }
+      } catch (err) {}
     }
 
-    // Always synchronize with public.team_users & dbStore
+    if (!authUpdated) {
+      throw new Error(authError || "Failed to update user password in Supabase Auth.");
+    }
+
+    // Synchronize with public.team_users & dbStore
     const users = dbStore.get("users") || [];
     const slugId = email.split("@")[0].replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
     const existingIdx = users.findIndex(u => u.email?.toLowerCase() === email || u.id === slugId);
@@ -498,11 +532,11 @@ async function handleSaveAbinUser() {
     dbStore.save("users", users);
     closeModal("abin-user-modal");
 
-    const actionText = mode === "create" ? "created and login password set" : "password updated";
+    const actionText = mode === "create" ? "created and login password set in Supabase" : "password updated in Supabase";
     showToast(`User ${name} ${actionText} by Director Abin!`, "success");
   } catch (e) {
     console.error("Error managing user:", e);
-    showToast("Error updating user credentials.", "danger");
+    showToast(e.message || "Error updating user credentials.", "danger");
   } finally {
     if (btn) btn.disabled = false;
   }

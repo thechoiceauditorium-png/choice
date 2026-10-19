@@ -15,6 +15,16 @@ let envConfig = {
 export async function loadEnv() {
   if (envConfig.url && envConfig.anonKey) return envConfig;
   try {
+    const configRes = await fetch("/api/config");
+    if (configRes.ok) {
+      const data = await configRes.json();
+      if (data.SUPABASE_URL) envConfig.url = data.SUPABASE_URL;
+      if (data.SUPABASE_ANON_KEY) envConfig.anonKey = data.SUPABASE_ANON_KEY;
+      if (envConfig.url && envConfig.anonKey) return envConfig;
+    }
+  } catch (e) {}
+
+  try {
     const res = await fetch(".env");
     if (res.ok) {
       const text = await res.text();
