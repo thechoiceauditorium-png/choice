@@ -195,7 +195,7 @@ async function run() {
     console.log("\n[TEST 2] Logging in as Director Abin (Owner/Admin)...");
     await cdp.evaluate(`
       (() => {
-        document.getElementById('login-email').value = 'elbymathew20@gmail.com';
+        document.getElementById('login-email').value = 'abinkgl@gmail.com';
         document.getElementById('login-password').value = 'Choice@2026!';
         document.getElementById('login-form').requestSubmit();
       })()

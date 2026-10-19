@@ -181,7 +181,7 @@ async function main() {
 
     await cdp.evaluate(`
       (() => {
-        document.getElementById('login-email').value = 'elbymathew20@gmail.com';
+        document.getElementById('login-email').value = 'abinkgl@gmail.com';
         document.getElementById('login-password').value = 'Choice@2026!';
         document.getElementById('login-form').requestSubmit();
       })()
