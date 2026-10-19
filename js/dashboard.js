@@ -7,7 +7,7 @@ import { renderHeader, formatINR, formatDate, formatDateTime, showToast, escapeH
 import { dbStore } from "./supabase-config.js";
 import { evaluateNotifications } from "./notifications.js";
 
-document.addEventListener("DOMContentLoaded", async () => {
+async function initDashboard() {
   const user = await requireAuth();
   if (!user) return;
 
@@ -27,7 +27,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   dbStore.subscribe("attendance", renderAttendanceWidget);
   dbStore.subscribe("checklists", renderChecklistsWidget);
   dbStore.subscribe("compliance", renderComplianceWidget);
-});
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initDashboard);
+} else {
+  initDashboard();
+}
 
 function renderBookingsSection(bookings = []) {
   const tbody = document.getElementById("upcoming-bookings-tbody");
@@ -124,6 +130,7 @@ function renderAttendanceWidget(attendance = []) {
   const widget = document.getElementById("today-attendance-widget");
   if (!widget) return;
 
+  const todayStr = new Date().toISOString().split("T")[0];
   const users = dbStore.get("users");
   const allWorkers = Array.isArray(users) ? users.filter(u => u.role === "worker") : [];
 

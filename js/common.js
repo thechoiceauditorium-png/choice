@@ -126,7 +126,16 @@ export const CHOICE_LOGO_SVG = `
 
 // Render Header and Navigation Bar
 export function renderHeader(activePage = "") {
-  const user = getCurrentUser();
+  let user = getCurrentUser();
+  if (!user) {
+    try {
+      user = JSON.parse(localStorage.getItem("choice_display_user") || "null");
+    } catch (e) {}
+  }
+  if (!user) {
+    user = { name: "Authorized Staff", role: "worker", title: "Staff", avatar: "A" };
+  }
+
   const headerContainer = document.getElementById("header-mount");
   if (!headerContainer) return;
 

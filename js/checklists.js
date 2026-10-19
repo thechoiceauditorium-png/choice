@@ -28,7 +28,7 @@ function getFilteredChecklists(checklists = []) {
   });
 }
 
-document.addEventListener("DOMContentLoaded", async () => {
+async function initChecklistsPage() {
   const user = await requireAuth();
   if (!user) return;
 
@@ -55,7 +55,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderChecklistTabs(checklists);
     renderActiveChecklist(checklists);
   });
-});
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initChecklistsPage);
+} else {
+  initChecklistsPage();
+}
 
 function initFilterEvents() {
   const monthInput = document.getElementById("chk-month-filter");

@@ -8,7 +8,7 @@ import { renderHeader, formatDate, formatDateTime, formatINR, showToast, openMod
 import { dbStore } from "./supabase-config.js";
 import { evaluateNotifications } from "./notifications.js";
 
-document.addEventListener("DOMContentLoaded", async () => {
+async function initCompliancePage() {
   const user = await requireAuth();
   if (!user) return;
 
@@ -30,7 +30,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderComplianceHistory();
   });
   renderComplianceHistory();
-});
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initCompliancePage);
+} else {
+  initCompliancePage();
+}
 
 function initModals() {
   document.getElementById("new-compliance-btn")?.addEventListener("click", () => openComplianceModal());

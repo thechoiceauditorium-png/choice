@@ -20,7 +20,7 @@ export function isDirectorAbin() {
   return isOwner() && (email.includes("abin") || name.includes("abin") || email.includes("elby"));
 }
 
-document.addEventListener("DOMContentLoaded", async () => {
+async function initDirectoryPage() {
   const user = await requireAuth();
   if (!user) return;
 
@@ -42,7 +42,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderCoreTeam();
     renderAbinUserManagement();
   });
-});
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initDirectoryPage);
+} else {
+  initDirectoryPage();
+}
 
 /**
  * Renders Core Management & Operations team cards with Admin edit controls

@@ -10,7 +10,7 @@ import { evaluateNotifications } from "./notifications.js";
 let currentCalDate = new Date();
 let currentBookingToPrint = null;
 
-document.addEventListener("DOMContentLoaded", async () => {
+async function initBookingsPage() {
   const user = await requireAuth();
   if (!user) return;
 
@@ -37,7 +37,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   window.addEventListener("choice:booking-conflict", (e) => {
     showToast(e.detail?.message || "This slot was just booked by someone else. Please choose a different time slot.", "danger");
   });
-});
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initBookingsPage);
+} else {
+  initBookingsPage();
+}
 
 function initCalendarControls() {
   const prevBtn = document.getElementById("cal-prev-month");
@@ -241,7 +247,8 @@ function renderListView(bookings = []) {
         ${isOwner() ? `<button class="btn btn-sm btn-danger del-bk-btn" data-id="${escapeHtml(b.id)}" style="padding: 0.2rem 0.4rem;">Delete</button>` : ''}
       </td>
     </tr>
-  `).join("");
+    `;
+  }).join("");
 
   // Attach row button events
   tbody.querySelectorAll(".edit-bk-btn").forEach(btn => {

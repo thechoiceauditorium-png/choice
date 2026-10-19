@@ -43,7 +43,7 @@ const EXPENSE_CATEGORIES = [
   "Others"
 ];
 
-document.addEventListener("DOMContentLoaded", async () => {
+async function initLedgerPage() {
   const user = await requireAuth();
   if (!user) return;
 
@@ -71,7 +71,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (urlParams.get("action") === "new") {
     openEntryModal();
   }
-});
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initLedgerPage);
+} else {
+  initLedgerPage();
+}
 
 function initCategoryDropdowns() {
   const catFilter = document.getElementById("ledger-cat-filter");

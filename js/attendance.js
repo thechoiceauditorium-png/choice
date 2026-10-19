@@ -16,7 +16,7 @@ function getWorkersList() {
   return [];
 }
 
-document.addEventListener("DOMContentLoaded", async () => {
+async function initAttendancePage() {
   const user = await requireAuth();
   if (!user) return;
 
@@ -40,7 +40,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     loadMarkingForSelectedDate(attendance);
     renderMonthlyAttendance(attendance);
   });
-});
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initAttendancePage);
+} else {
+  initAttendancePage();
+}
 
 function checkRolePermissions() {
   const currentUser = getCurrentUser();
