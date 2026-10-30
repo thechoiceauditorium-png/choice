@@ -466,6 +466,7 @@ function handleSaveBooking() {
   const phone1 = document.getElementById("customer-phone1").value.trim();
   const phone2 = document.getElementById("customer-phone2").value.trim();
   const reference = document.getElementById("booking-reference").value.trim();
+  const eventDesc = document.getElementById("event-desc")?.value.trim() || "";
   const fromDate = document.getElementById("from-date")?.value || document.getElementById("reservation-date")?.value || "";
   const toDate = document.getElementById("to-date")?.value || fromDate;
   const reservationDate = fromDate;
