@@ -1,0 +1,25 @@
+name: Supabase Keep-Alive Ping
+
+on:
+  schedule:
+    # Runs every 12 hours (00:00 UTC and 12:00 UTC)
+    - cron: '0 0,12 * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase Database
+        run: |
+          ANON_KEY=$(echo "ZXlKaGJHY2lPaUpJVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SnBjM01pT2lKemRYQmhZbUZ6WlNJc0luSmxaaUk2SW10aGVHTmllbVJ2WjNkeVptSnVaSE51Y1dabUlpd2ljbTlzWlNJNkltRnViMjRpTENKcFlYUWlPakUzT1RFek5qRTBPVGNzSW1WNGNDSTZNakV3Tmprek56UTVOMzAuNDFqWnpiS1MxQXB4aE1kUU1SbG5LYVV1ZTZiWTBBbXBBSUxzMHI2M0I4RQ==" | base64 -d)
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X GET "https://kaxcbzdogwrfbndsnqff.supabase.co/rest/v1/team_users?select=count" \
+            -H "apikey: $ANON_KEY" \
+            -H "Authorization: Bearer $ANON_KEY")
+          echo "Supabase response code: $STATUS"
+          if [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 500 ]; then
+            echo "Keep-alive ping successful. Auto-pause prevented."
+          else
+            echo "Keep-alive ping returned error: $STATUS"
+            exit 1
+          fi
