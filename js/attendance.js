@@ -464,6 +464,9 @@ function renderMonthlyAttendance(attendance = []) {
           <button class="btn btn-sm btn-secondary att-history-edit-btn" data-record-id="${escapeHtml(a.id)}">
             Edit
           </button>
+          <button class="btn btn-sm btn-outline att-history-delete-btn" data-record-id="${escapeHtml(a.id)}" style="border: 1px solid #FFCDD2; color: #C62828;">
+            Delete
+          </button>
         </div>
       `;
     }
@@ -496,12 +499,50 @@ function renderMonthlyAttendance(attendance = []) {
       openEditAttendanceModal(btn.dataset.recordId);
     });
   });
+
+  tbody.querySelectorAll(".att-history-delete-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const recordId = btn.dataset.recordId;
+      const rec = (dbStore.get("attendance") || []).find(x => x.id === recordId);
+      const name = rec ? rec.workerName || "worker" : "this record";
+      const dateStr = rec ? formatDate(rec.date) : "";
+      if (confirm(`Delete attendance record for ${name} on ${dateStr}?`)) {
+        handleDeleteAttendance(recordId);
+      }
+    });
+  });
 }
 
 function initEditAttendanceModal() {
   document.getElementById("close-edit-att-modal-btn")?.addEventListener("click", () => closeModal("edit-attendance-modal"));
   document.getElementById("cancel-edit-att-modal-btn")?.addEventListener("click", () => closeModal("edit-attendance-modal"));
   document.getElementById("save-edit-att-btn")?.addEventListener("click", handleSaveEditAttendance);
+  document.getElementById("delete-edit-att-btn")?.addEventListener("click", () => {
+    const recordId = document.getElementById("edit-att-id").value;
+    if (recordId && confirm("Are you sure you want to delete this attendance record?")) {
+      closeModal("edit-attendance-modal");
+      handleDeleteAttendance(recordId);
+    }
+  });
+}
+
+function handleDeleteAttendance(recordId) {
+  if (!isOwner()) {
+    showToast("Only administrators can delete attendance records.", "danger");
+    return;
+  }
+  const allRecords = dbStore.get("attendance") || [];
+  const rec = allRecords.find(x => x.id === recordId);
+  const remaining = allRecords.filter(x => x.id !== recordId);
+  dbStore.delete("attendance", recordId);
+
+  // If deleted record is for currently selected marking date, reset UI form state
+  const selectedDate = document.getElementById("att-date-picker")?.value;
+  if (rec && rec.date === selectedDate) {
+    loadMarkingForSelectedDate(remaining);
+  }
+
+  showToast("Attendance record deleted.", "success");
 }
 
 function openEditAttendanceModal(recordId) {

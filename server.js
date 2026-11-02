@@ -322,6 +322,29 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // API Route: Generic Remote Delete (bypasses RLS limits)
+  if (urlPath === "/api/sync/delete") {
+    let body = {};
+    try { body = await parseJsonBody(req); } catch (e) {}
+    req.body = body;
+    const delHandler = require("./api/sync/delete.js");
+    const fakeRes = {
+      setHeader: (k, v) => res.setHeader(k, v),
+      status: (c) => {
+        res.statusCode = c;
+        return fakeRes;
+      },
+      json: (d) => {
+        res.setHeader("Content-Type", "application/json");
+        res.setHeader("Access-Control-Allow-Origin", "*");
+        res.end(JSON.stringify(d));
+      },
+      end: () => res.end()
+    };
+    await delHandler(req, fakeRes);
+    return;
+  }
+
   // API Route: Public client environment config (safe anon key only)
   if (urlPath === "/api/config") {
     res.writeHead(200, {

@@ -550,13 +550,17 @@ class ChoiceDataStore {
     this.save(collectionName, filtered, false);
 
     // Sync delete to Supabase
+    fetch("/api/sync/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ collection: collectionName, id })
+    }).catch(err => console.warn(`Supabase delete sync error on ${collectionName}:`, err));
+
     if (isSupabaseConfigured()) {
       getSupabase().then(sb => {
         if (sb) {
           const tableName = collectionName === "users" ? "team_users" : collectionName;
-          sb.from(tableName).delete().eq("id", id).then(({ error }) => {
-            if (error) console.warn(`Supabase delete error on ${collectionName}:`, error);
-          });
+          sb.from(tableName).delete().eq("id", id).catch(() => {});
         }
       }).catch(err => console.warn(err));
     }
