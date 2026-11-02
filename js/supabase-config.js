@@ -423,7 +423,7 @@ class ChoiceDataStore {
 
     // Remote sync
     if (syncRemote && isSupabaseConfigured() && Array.isArray(items)) {
-      if (collectionName === "attendance" || collectionName === "compliance" || collectionName === "bookings" || collectionName === "checklists") {
+      if (collectionName === "attendance" || collectionName === "compliance" || collectionName === "bookings" || collectionName === "checklists" || collectionName === "compliance_history") {
         fetch("/api/sync/save", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -456,7 +456,7 @@ class ChoiceDataStore {
 
     // Sync individual record to Supabase
     if (isSupabaseConfigured()) {
-      if (collectionName === "attendance" || collectionName === "compliance" || collectionName === "bookings" || collectionName === "checklists") {
+      if (collectionName === "attendance" || collectionName === "compliance" || collectionName === "bookings" || collectionName === "checklists" || collectionName === "compliance_history") {
         fetch("/api/sync/save", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -511,7 +511,7 @@ class ChoiceDataStore {
 
       // Sync individual update to Supabase
       if (isSupabaseConfigured()) {
-        if (collectionName === "attendance" || collectionName === "compliance" || collectionName === "bookings" || collectionName === "checklists") {
+        if (collectionName === "attendance" || collectionName === "compliance" || collectionName === "bookings" || collectionName === "checklists" || collectionName === "compliance_history") {
           fetch("/api/sync/save", {
             method: "POST",
             headers: { "Content-Type": "application/json" },

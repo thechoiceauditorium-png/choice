@@ -333,6 +333,7 @@ function renderLedgerTable(ledger = []) {
 }
 
 function renderMonthlySummary(ledger = []) {
+  const isUserOwner = isOwner();
   const monthFilter = document.getElementById("ledger-month-filter")?.value || "";
   
   let income = 0;
@@ -354,16 +355,29 @@ function renderMonthlySummary(ledger = []) {
 
   const net = income - expense;
 
+  const incCard = document.getElementById("stat-card-income");
+  const netCard = document.getElementById("stat-card-net");
   const incEl = document.getElementById("summary-total-income");
   const expEl = document.getElementById("summary-total-expense");
   const netEl = document.getElementById("summary-net-balance");
 
-  if (incEl) incEl.textContent = formatINR(income);
-  if (expEl) expEl.textContent = formatINR(expense);
-  if (netEl) {
-    netEl.textContent = formatINR(net);
-    netEl.style.color = net >= 0 ? "#1565C0" : "#C62828";
+  if (isUserOwner) {
+    if (incCard) incCard.style.display = "";
+    if (netCard) netCard.style.display = "";
+    if (incEl) incEl.textContent = formatINR(income);
+    if (netEl) {
+      netEl.textContent = formatINR(net);
+      netEl.style.color = net >= 0 ? "#1565C0" : "#C62828";
+    }
+  } else {
+    // Workers do not see income total or net profit
+    if (incCard) incCard.style.display = "none";
+    if (netCard) netCard.style.display = "none";
+    if (incEl) incEl.textContent = "—";
+    if (netEl) netEl.textContent = "—";
   }
+
+  if (expEl) expEl.textContent = formatINR(expense);
 
   const incSub = document.getElementById("summary-income-count");
   const expSub = document.getElementById("summary-expense-count");

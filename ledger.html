@@ -23,7 +23,7 @@
 
     <!-- Monthly Summary Stat Cards -->
     <div class="stats-grid">
-      <div class="stat-card green">
+      <div class="stat-card green" id="stat-card-income">
         <div>
           <div class="stat-label">Total Income (This Month)</div>
           <div class="stat-value" id="summary-total-income">₹0</div>
@@ -39,7 +39,7 @@
         </div>
         <div class="stat-icon" style="color: #C62828; background: #FFEBEE; font-weight: bold; font-size: 0.9rem;">EXP</div>
       </div>
-      <div class="stat-card blue">
+      <div class="stat-card blue" id="stat-card-net">
         <div>
           <div class="stat-label">Net Balance</div>
           <div class="stat-value" id="summary-net-balance">₹0</div>
@@ -162,6 +162,6 @@
 
   <div id="toast-mount"></div>
 
-  <script type="module" src="js/ledger.js?v=2"></script>
+  <script type="module" src="js/ledger.js?v=3"></script>
 </body>
 </html>

@@ -39,6 +39,8 @@ function renderBookingsSection(bookings = []) {
   const tbody = document.getElementById("upcoming-bookings-tbody");
   if (!tbody) return;
 
+  const isUserOwner = isOwner();
+
   // Filter confirmed & enquiries upcoming
   const todayStr = new Date().toISOString().split("T")[0];
   const sorted = [...bookings]
@@ -71,9 +73,9 @@ function renderBookingsSection(bookings = []) {
           <span class="badge ${statusClass}">${escapeHtml(b.status || '')}</span>
         </td>
         <td>
-          <div style="font-size: 0.85rem; font-weight: bold;">${formatINR(b.grandTotal)}</div>
+          <div style="font-size: 0.85rem; font-weight: bold;">${isUserOwner ? formatINR(b.grandTotal) : 'Reserved'}</div>
           <div style="font-size: 0.72rem; color: ${b.balanceAmount > 0 ? '#C62828' : '#2E7D32'};">
-            ${b.balanceAmount > 0 ? 'Bal: ' + formatINR(b.balanceAmount) : 'Paid in Full'}
+            ${isUserOwner ? (b.balanceAmount > 0 ? 'Bal: ' + formatINR(b.balanceAmount) : 'Paid in Full') : escapeHtml(b.status || '')}
           </div>
         </td>
       </tr>
@@ -87,6 +89,14 @@ function renderFinancialSnapshot(ledger = []) {
   const isUserOwner = isOwner();
   const finCard = document.getElementById("financial-snapshot-card");
   
+  if (!isUserOwner) {
+    if (finCard) finCard.style.display = "none";
+    updateKpiGrid();
+    return;
+  }
+  
+  if (finCard) finCard.style.display = "";
+
   // Calculate this month's stats
   const now = new Date();
   const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -112,15 +122,6 @@ function renderFinancialSnapshot(ledger = []) {
   if (netEl) {
     netEl.textContent = formatINR(net);
     netEl.style.color = net >= 0 ? "#1565C0" : "#C62828";
-  }
-
-  // If worker, hide or simplify detailed totals
-  if (!isUserOwner && finCard) {
-    finCard.querySelector(".card-body").innerHTML = `
-      <div style="padding: 1rem; background: #FAFAFA; border-radius: 4px; text-align: center; color: #666; font-size: 0.88rem;">
-        Ledger operational logging enabled. Day-to-day vouchers & recurring expenses can be logged in <a href="ledger.html">Books</a>.
-      </div>
-    `;
   }
 
   updateKpiGrid();
@@ -300,6 +301,29 @@ function updateKpiGrid() {
   const checklists = dbStore.get("checklists");
   const activeChkCount = checklists.filter(c => c.status !== "Completed").length;
 
+  const userIsOwner = isOwner();
+  const currentMonthName = now.toLocaleString("en-IN", { month: "long" });
+
+  const revenueCardHtml = userIsOwner ? `
+    <div class="stat-card green">
+      <div>
+        <div class="stat-label">${currentMonthName} Revenue</div>
+        <div class="stat-value">${formatINR(monthInc)}</div>
+        <div class="stat-sub">Advances & rentals</div>
+      </div>
+      <div class="stat-icon" style="font-weight: bold; font-size: 0.9rem;">INR</div>
+    </div>
+  ` : `
+    <div class="stat-card green">
+      <div>
+        <div class="stat-label">Daily Operations</div>
+        <div class="stat-value">Active</div>
+        <div class="stat-sub">Staff duty & checklist mode</div>
+      </div>
+      <div class="stat-icon" style="font-weight: bold; font-size: 0.9rem;">OPS</div>
+    </div>
+  `;
+
   kpiMount.innerHTML = `
     <div class="stat-card">
       <div>
@@ -309,14 +333,7 @@ function updateKpiGrid() {
       </div>
       <div class="stat-icon" style="font-weight: bold; font-size: 0.9rem;">BKG</div>
     </div>
-    <div class="stat-card green">
-      <div>
-        <div class="stat-label">September Revenue</div>
-        <div class="stat-value">${isOwner() ? formatINR(monthInc) : '₹ Active'}</div>
-        <div class="stat-sub">Advances & rentals</div>
-      </div>
-      <div class="stat-icon" style="font-weight: bold; font-size: 0.9rem;">INR</div>
-    </div>
+    ${revenueCardHtml}
     <div class="stat-card amber">
       <div>
         <div class="stat-label">Active Checklists</div>

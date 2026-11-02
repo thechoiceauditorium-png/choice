@@ -148,7 +148,7 @@ export function renderHeader(activePage = "") {
           </div>
           <div class="brand-details">
             <h1>The Choice Auditorium</h1>
-            <p>Alamaram, Kanjikode, Palakkad — 678621 | 9495820978</p>
+            <p>Alamaram, Kanjikode, Palakkad — 678621 | 8848614365/8848649672</p>
           </div>
         </div>
         <div class="header-actions">

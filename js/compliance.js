@@ -330,7 +330,7 @@ function renderComplianceHistory() {
   }
 
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="padding: 1.5rem; color: #999;">No completed compliance records matching filter.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="text-center" style="padding: 1.5rem; color: #999;">No completed compliance records matching filter.</td></tr>`;
     return;
   }
 
@@ -347,8 +347,23 @@ function renderComplianceHistory() {
         ${h.amountPaid > 0 ? formatINR(h.amountPaid) : '—'}
       </td>
       <td style="font-size: 0.8rem; color: #555; max-width: 250px;">${escapeHtml(h.notes || '—')}</td>
+      <td class="text-right">
+        <button class="btn btn-sm btn-outline-danger del-comp-hist-btn" data-id="${escapeHtml(h.id)}" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; color: #C62828; border: 1px solid #FFCDD2;">
+          Delete
+        </button>
+      </td>
     </tr>
   `).join("");
+
+  tbody.querySelectorAll(".del-comp-hist-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.dataset.id;
+      if (confirm("Delete this completed filing record?")) {
+        dbStore.delete("compliance_history", id);
+        showToast("Filing record deleted.");
+      }
+    });
+  });
 }
 
 function openComplianceModal(item = null) {
