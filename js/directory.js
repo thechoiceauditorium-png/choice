@@ -265,6 +265,10 @@ function initModals() {
   document.getElementById("close-abin-modal-btn")?.addEventListener("click", () => closeModal("abin-user-modal"));
   document.getElementById("cancel-abin-modal-btn")?.addEventListener("click", () => closeModal("abin-user-modal"));
   document.getElementById("save-abin-user-btn")?.addEventListener("click", handleSaveAbinUser);
+  document.getElementById("abin-user-form")?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    handleSaveAbinUser();
+  });
 }
 
 function openContactModal(item = null) {
@@ -420,6 +424,7 @@ function openAbinPasswordModal(user) {
   document.getElementById("abin-user-password").required = true;
 
   openModal("abin-user-modal");
+  setTimeout(() => document.getElementById("abin-user-password")?.focus(), 150);
 }
 
 /**
@@ -431,22 +436,39 @@ async function handleSaveAbinUser() {
     return;
   }
 
-  const form = document.getElementById("abin-user-form");
-  if (!form.checkValidity()) {
-    form.reportValidity();
-    return;
-  }
-
   const mode = document.getElementById("abin-edit-mode").value;
   const name = document.getElementById("abin-user-name").value.trim();
   const role = document.getElementById("abin-user-role").value;
   const title = document.getElementById("abin-user-title").value.trim();
   const email = document.getElementById("abin-user-email").value.trim().toLowerCase();
   const phone = document.getElementById("abin-user-phone").value.trim();
-  const password = document.getElementById("abin-user-password").value;
+  const password = document.getElementById("abin-user-password").value.trim();
+
+  if (!email) {
+    showToast("Please enter a valid email address.", "warning");
+    document.getElementById("abin-user-email")?.focus();
+    return;
+  }
+
+  if (!name) {
+    showToast("Please enter the staff name.", "warning");
+    document.getElementById("abin-user-name")?.focus();
+    return;
+  }
+
+  if (mode === "create" || mode === "password") {
+    if (!password || password.length < 6) {
+      showToast("Please enter a new password (min 6 characters) to issue credentials.", "warning");
+      document.getElementById("abin-user-password")?.focus();
+      return;
+    }
+  }
 
   const btn = document.getElementById("save-abin-user-btn");
-  if (btn) btn.disabled = true;
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Saving to Supabase...";
+  }
 
   try {
     const sb = await getSupabase();
@@ -519,8 +541,8 @@ async function handleSaveAbinUser() {
       title,
       phone,
       email,
-      avatar: name.slice(0, 2).toUpperCase(),
-      createdAt: new Date().toISOString()
+      avatar: (name ? name.slice(0, 2) : "U").toUpperCase(),
+      createdAt: (existingIdx !== -1 && users[existingIdx]?.createdAt) || new Date().toISOString()
     };
 
     if (existingIdx !== -1) {
@@ -532,12 +554,18 @@ async function handleSaveAbinUser() {
     dbStore.save("users", users);
     closeModal("abin-user-modal");
 
+    renderCoreTeam();
+    renderAbinUserManagement();
+
     const actionText = mode === "create" ? "created and login password set in Supabase" : "password updated in Supabase";
     showToast(`User ${name} ${actionText} by Director Abin!`, "success");
   } catch (e) {
     console.error("Error managing user:", e);
     showToast(e.message || "Error updating user credentials.", "danger");
   } finally {
-    if (btn) btn.disabled = false;
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "Save & Issue Credentials";
+    }
   }
 }
