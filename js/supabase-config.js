@@ -407,12 +407,12 @@ class ChoiceDataStore {
 
     // Remote sync
     if (syncRemote && isSupabaseConfigured() && Array.isArray(items)) {
-      if (collectionName === "compliance") {
-        fetch("/api/compliance/save", {
+      if (collectionName === "attendance" || collectionName === "compliance" || collectionName === "bookings") {
+        fetch("/api/sync/save", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ items })
-        }).catch(err => console.warn("Compliance remote sync error:", err));
+          body: JSON.stringify({ collection: collectionName, items })
+        }).catch(err => console.warn(`${collectionName} remote sync error:`, err));
       } else {
         getSupabase().then(sb => {
           if (sb) {
@@ -440,12 +440,12 @@ class ChoiceDataStore {
 
     // Sync individual record to Supabase
     if (isSupabaseConfigured()) {
-      if (collectionName === "compliance") {
-        fetch("/api/compliance/save", {
+      if (collectionName === "attendance" || collectionName === "compliance" || collectionName === "bookings") {
+        fetch("/api/sync/save", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ items: [item] })
-        }).catch(err => console.warn("Compliance add sync error:", err));
+          body: JSON.stringify({ collection: collectionName, items: [item] })
+        }).catch(err => console.warn(`${collectionName} add sync error:`, err));
       } else {
         getSupabase().then(sb => {
           if (sb) {
@@ -495,12 +495,12 @@ class ChoiceDataStore {
 
       // Sync individual update to Supabase
       if (isSupabaseConfigured()) {
-        if (collectionName === "compliance") {
-          fetch("/api/compliance/save", {
+        if (collectionName === "attendance" || collectionName === "compliance" || collectionName === "bookings") {
+          fetch("/api/sync/save", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ items: [items[index]] })
-          }).catch(err => console.warn("Compliance update sync error:", err));
+            body: JSON.stringify({ collection: collectionName, items: [items[index]] })
+          }).catch(err => console.warn(`${collectionName} update sync error:`, err));
         } else {
           getSupabase().then(sb => {
             if (sb) {

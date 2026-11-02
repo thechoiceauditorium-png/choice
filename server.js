@@ -299,12 +299,12 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // API Route: Statutory Compliance Save & Cycle Advance (bypasses faulty trigger)
-  if (urlPath === "/api/compliance/save") {
+  // API Route: Generic Remote Sync (bypasses faulty PostgreSQL triggers)
+  if (urlPath === "/api/sync/save" || urlPath === "/api/compliance/save") {
     let body = {};
     try { body = await parseJsonBody(req); } catch (e) {}
     req.body = body;
-    const saveHandler = require("./api/compliance/save.js");
+    const saveHandler = require("./api/sync/save.js");
     const fakeRes = {
       setHeader: (k, v) => res.setHeader(k, v),
       status: (c) => {
