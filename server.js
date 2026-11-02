@@ -2,7 +2,7 @@ const http = require("http");
 const fs = require("fs");
 const path = require("path");
 
-const PORT = 8080;
+const PORT = process.env.PORT || 3000;
 const HOST = "0.0.0.0";
 const ROOT = __dirname;
 
@@ -233,9 +233,24 @@ async function handleAdminManageUser(req, res) {
     }
 
     // 3. Sync to public.team_users for UI display
-    const slugId = cleanEmail.split("@")[0].replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+    let teamRecordId = cleanEmail.split("@")[0].replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+    try {
+      const teamCheckRes = await fetch(`${SUPABASE_URL}/rest/v1/team_users?select=id&email=ilike.${encodeURIComponent(cleanEmail)}`, {
+        headers: {
+          "apikey": SUPABASE_SERVICE_ROLE_KEY,
+          "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+        }
+      });
+      if (teamCheckRes.ok) {
+        const matched = await teamCheckRes.json();
+        if (matched && matched.length > 0 && matched[0].id) {
+          teamRecordId = matched[0].id;
+        }
+      }
+    } catch (e) {}
+
     const teamUserRecord = {
-      id: slugId,
+      id: teamRecordId,
       name: name || cleanEmail.split("@")[0],
       role: role || "worker",
       title: title || (role === "owner" ? "Owner" : "Staff"),
