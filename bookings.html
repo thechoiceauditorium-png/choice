@@ -270,15 +270,18 @@
           </div>
         </form>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" id="cancel-booking-modal-btn">Cancel</button>
-        <button type="button" class="btn btn-primary" id="save-booking-btn">Save Booking</button>
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+        <button type="button" class="btn btn-outline" id="delete-booking-btn" style="border: 1px solid #FFCDD2; color: #C62828; display: none;">Delete Booking</button>
+        <div style="display: flex; gap: 0.5rem;">
+          <button type="button" class="btn btn-secondary" id="cancel-booking-modal-btn">Cancel</button>
+          <button type="button" class="btn btn-primary" id="save-booking-btn">Save Booking</button>
+        </div>
       </div>
     </div>
   </div>
 
   <div id="toast-mount"></div>
 
-  <script type="module" src="js/bookings.js?v=2"></script>
+  <script type="module" src="js/bookings.js?v=3"></script>
 </body>
 </html>

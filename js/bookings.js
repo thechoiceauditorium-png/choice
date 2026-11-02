@@ -260,9 +260,13 @@ function renderListView(bookings = []) {
 
   tbody.querySelectorAll(".del-bk-btn").forEach(btn => {
     btn.addEventListener("click", () => {
-      if (confirm("Are you sure you want to delete this booking record?")) {
+      const b = bookings.find(x => x.id === btn.dataset.id);
+      const name = b ? b.customerName : "this booking";
+      if (confirm(`Are you sure you want to permanently delete the booking for ${name}?`)) {
         dbStore.delete("bookings", btn.dataset.id);
-        showToast("Booking deleted.");
+        renderCalendarView(dbStore.get("bookings"));
+        renderListView(dbStore.get("bookings"));
+        showToast("Booking deleted successfully.", "success");
       }
     });
   });
@@ -272,6 +276,19 @@ function initBookingForm() {
   document.getElementById("open-new-booking-btn")?.addEventListener("click", () => openBookingModal());
   document.getElementById("close-booking-modal-btn")?.addEventListener("click", () => closeModal("booking-modal"));
   document.getElementById("cancel-booking-modal-btn")?.addEventListener("click", () => closeModal("booking-modal"));
+
+  // Delete Booking from modal
+  document.getElementById("delete-booking-btn")?.addEventListener("click", () => {
+    const bookingId = document.getElementById("booking-id").value;
+    const name = document.getElementById("customer-name").value || "this booking";
+    if (bookingId && confirm(`Are you sure you want to permanently delete the booking for ${name}?`)) {
+      closeModal("booking-modal");
+      dbStore.delete("bookings", bookingId);
+      renderCalendarView(dbStore.get("bookings"));
+      renderListView(dbStore.get("bookings"));
+      showToast("Booking deleted successfully.", "success");
+    }
+  });
 
   // Search and filter triggers
   document.getElementById("booking-search")?.addEventListener("input", () => renderListView(dbStore.get("bookings")));
@@ -310,6 +327,19 @@ function openBookingModal(booking = null, defaultDate = null) {
   const titleEl = document.getElementById("booking-modal-title");
   const banner = document.getElementById("conflict-alert-banner");
   banner.style.display = "none";
+
+  const deleteBtn = document.getElementById("delete-booking-btn");
+  if (booking && isOwner()) {
+    if (deleteBtn) {
+      deleteBtn.style.display = "inline-block";
+      deleteBtn.dataset.id = booking.id;
+    }
+  } else {
+    if (deleteBtn) {
+      deleteBtn.style.display = "none";
+      deleteBtn.removeAttribute("data-id");
+    }
+  }
 
   const allBookings = dbStore.get("bookings");
 
