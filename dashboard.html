@@ -65,16 +65,16 @@
             <a href="ledger.html" class="btn btn-secondary btn-sm">Ledger Details</a>
           </div>
           <div class="card-body">
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; text-align: center; margin-bottom: 1.25rem;">
-              <div style="padding: 1rem; background: #E8F5E9; border-radius: var(--radius-sm); border: 1px solid #C8E6C9;">
+            <div id="financial-boxes-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; text-align: center; margin-bottom: 1.25rem;">
+              <div id="box-month-income" style="padding: 1rem; background: #E8F5E9; border-radius: var(--radius-sm); border: 1px solid #C8E6C9;">
                 <div style="font-size: 0.8rem; color: #2E7D32; font-weight: bold; text-transform: uppercase;">Total Income (This Month)</div>
                 <div id="stat-month-income" style="font-size: 1.4rem; font-weight: 800; color: #1B5E20; margin-top: 4px;">₹0</div>
               </div>
-              <div style="padding: 1rem; background: #FFEBEE; border-radius: var(--radius-sm); border: 1px solid #FFCDD2;">
+              <div id="box-month-expense" style="padding: 1rem; background: #FFEBEE; border-radius: var(--radius-sm); border: 1px solid #FFCDD2;">
                 <div style="font-size: 0.8rem; color: #C62828; font-weight: bold; text-transform: uppercase;">Total Expenses (This Month)</div>
                 <div id="stat-month-expense" style="font-size: 1.4rem; font-weight: 800; color: #B71C1C; margin-top: 4px;">₹0</div>
               </div>
-              <div style="padding: 1rem; background: #E3F2FD; border-radius: var(--radius-sm); border: 1px solid #BBDEFB;">
+              <div id="box-month-net" style="padding: 1rem; background: #E3F2FD; border-radius: var(--radius-sm); border: 1px solid #BBDEFB;">
                 <div style="font-size: 0.8rem; color: #1565C0; font-weight: bold; text-transform: uppercase;">Net Balance</div>
                 <div id="stat-month-net" style="font-size: 1.4rem; font-weight: 800; color: #0D47A1; margin-top: 4px;">₹0</div>
               </div>
@@ -126,6 +126,6 @@
 
   <div id="toast-mount"></div>
 
-  <script type="module" src="js/dashboard.js?v=3"></script>
+  <script type="module" src="js/dashboard.js?v=4"></script>
 </body>
 </html>

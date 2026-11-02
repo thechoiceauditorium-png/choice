@@ -39,8 +39,6 @@ function renderBookingsSection(bookings = []) {
   const tbody = document.getElementById("upcoming-bookings-tbody");
   if (!tbody) return;
 
-  const isUserOwner = isOwner();
-
   // Filter confirmed & enquiries upcoming
   const todayStr = new Date().toISOString().split("T")[0];
   const sorted = [...bookings]
@@ -73,9 +71,9 @@ function renderBookingsSection(bookings = []) {
           <span class="badge ${statusClass}">${escapeHtml(b.status || '')}</span>
         </td>
         <td>
-          <div style="font-size: 0.85rem; font-weight: bold;">${isUserOwner ? formatINR(b.grandTotal) : 'Reserved'}</div>
+          <div style="font-size: 0.85rem; font-weight: bold;">${formatINR(b.grandTotal)}</div>
           <div style="font-size: 0.72rem; color: ${b.balanceAmount > 0 ? '#C62828' : '#2E7D32'};">
-            ${isUserOwner ? (b.balanceAmount > 0 ? 'Bal: ' + formatINR(b.balanceAmount) : 'Paid in Full') : escapeHtml(b.status || '')}
+            ${b.balanceAmount > 0 ? 'Bal: ' + formatINR(b.balanceAmount) : 'Paid in Full'}
           </div>
         </td>
       </tr>
@@ -88,14 +86,11 @@ function renderBookingsSection(bookings = []) {
 function renderFinancialSnapshot(ledger = []) {
   const isUserOwner = isOwner();
   const finCard = document.getElementById("financial-snapshot-card");
-  
-  if (!isUserOwner) {
-    if (finCard) finCard.style.display = "none";
-    updateKpiGrid();
-    return;
-  }
-  
   if (finCard) finCard.style.display = "";
+
+  const boxIncome = document.getElementById("box-month-income");
+  const boxNet = document.getElementById("box-month-net");
+  const grid = document.getElementById("financial-boxes-grid");
 
   // Calculate this month's stats
   const now = new Date();
@@ -117,11 +112,22 @@ function renderFinancialSnapshot(ledger = []) {
   const expEl = document.getElementById("stat-month-expense");
   const netEl = document.getElementById("stat-month-net");
 
-  if (incEl) incEl.textContent = formatINR(income);
   if (expEl) expEl.textContent = formatINR(expense);
-  if (netEl) {
-    netEl.textContent = formatINR(net);
-    netEl.style.color = net >= 0 ? "#1565C0" : "#C62828";
+
+  if (isUserOwner) {
+    if (boxIncome) boxIncome.style.display = "";
+    if (boxNet) boxNet.style.display = "";
+    if (grid) grid.style.gridTemplateColumns = "repeat(3, 1fr)";
+    if (incEl) incEl.textContent = formatINR(income);
+    if (netEl) {
+      netEl.textContent = formatINR(net);
+      netEl.style.color = net >= 0 ? "#1565C0" : "#C62828";
+    }
+  } else {
+    // Only income is hidden for workers; expenses remain fully visible
+    if (boxIncome) boxIncome.style.display = "none";
+    if (boxNet) boxNet.style.display = "none";
+    if (grid) grid.style.gridTemplateColumns = "1fr";
   }
 
   updateKpiGrid();
@@ -294,8 +300,12 @@ function updateKpiGrid() {
   const now = new Date();
   const currentYM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   let monthInc = 0;
+  let monthExp = 0;
   ledger.forEach(l => {
-    if (l.type === "income" && l.date?.startsWith(currentYM)) monthInc += Number(l.amount) || 0;
+    if (l.date?.startsWith(currentYM)) {
+      if (l.type === "income") monthInc += Number(l.amount) || 0;
+      if (l.type === "expense") monthExp += Number(l.amount) || 0;
+    }
   });
 
   const checklists = dbStore.get("checklists");
@@ -304,7 +314,7 @@ function updateKpiGrid() {
   const userIsOwner = isOwner();
   const currentMonthName = now.toLocaleString("en-IN", { month: "long" });
 
-  const revenueCardHtml = userIsOwner ? `
+  const revenueOrExpenseCardHtml = userIsOwner ? `
     <div class="stat-card green">
       <div>
         <div class="stat-label">${currentMonthName} Revenue</div>
@@ -314,13 +324,13 @@ function updateKpiGrid() {
       <div class="stat-icon" style="font-weight: bold; font-size: 0.9rem;">INR</div>
     </div>
   ` : `
-    <div class="stat-card green">
+    <div class="stat-card">
       <div>
-        <div class="stat-label">Daily Operations</div>
-        <div class="stat-value">Active</div>
-        <div class="stat-sub">Staff duty & checklist mode</div>
+        <div class="stat-label">${currentMonthName} Expenses</div>
+        <div class="stat-value" style="color: #C62828;">${formatINR(monthExp)}</div>
+        <div class="stat-sub">Operational expenditures</div>
       </div>
-      <div class="stat-icon" style="font-weight: bold; font-size: 0.9rem;">OPS</div>
+      <div class="stat-icon" style="color: #C62828; background: #FFEBEE; font-weight: bold; font-size: 0.9rem;">EXP</div>
     </div>
   `;
 
@@ -333,7 +343,7 @@ function updateKpiGrid() {
       </div>
       <div class="stat-icon" style="font-weight: bold; font-size: 0.9rem;">BKG</div>
     </div>
-    ${revenueCardHtml}
+    ${revenueOrExpenseCardHtml}
     <div class="stat-card amber">
       <div>
         <div class="stat-label">Active Checklists</div>
