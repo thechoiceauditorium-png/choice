@@ -345,6 +345,39 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // API Route: Generic Remote Pull (guarantees fresh data from Supabase Postgres)
+  if (urlPath === "/api/sync/pull") {
+    const parsedUrl = new URL(req.url, "http://localhost");
+    const col = parsedUrl.searchParams.get("collection") || "";
+    const tableName = col === "users" ? "team_users" : (col === "ledger" ? "active_ledger" : col);
+    if (!tableName) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ success: false, error: "collection is required" }));
+      return;
+    }
+    try {
+      const sbRes = await fetch(`${SUPABASE_URL}/rest/v1/${tableName}?select=*`, {
+        headers: {
+          "apikey": SUPABASE_SERVICE_ROLE_KEY,
+          "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+        }
+      });
+      const data = await sbRes.json();
+      res.writeHead(200, {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*"
+      });
+      res.end(JSON.stringify({ success: true, collection: col, data: Array.isArray(data) ? data : [] }));
+    } catch (err) {
+      res.writeHead(500, {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*"
+      });
+      res.end(JSON.stringify({ success: false, error: err.message }));
+    }
+    return;
+  }
+
   // API Route: Public client environment config (safe anon key only)
   if (urlPath === "/api/config") {
     res.writeHead(200, {

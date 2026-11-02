@@ -285,9 +285,25 @@ class ChoiceDataStore {
     for (const col of collections) {
       try {
         const queryTable = col === "ledger" ? "active_ledger" : col;
+        let items = null;
         const { data, error } = await sb.from(queryTable).select("*");
-        if (!error && Array.isArray(data)) {
-          localStorage.setItem(`choice_${col}`, JSON.stringify(data));
+        if (!error && Array.isArray(data) && data.length > 0) {
+          items = data;
+        } else {
+          // Fallback to server sync pull with service role to guarantee fresh state
+          try {
+            const pullRes = await fetch(`/api/sync/pull?collection=${col}`);
+            if (pullRes.ok) {
+              const pullJson = await pullRes.json();
+              if (pullJson.success && Array.isArray(pullJson.data) && pullJson.data.length > 0) {
+                items = pullJson.data;
+              }
+            }
+          } catch (e) {}
+        }
+
+        if (items && Array.isArray(items)) {
+          localStorage.setItem(`choice_${col}`, JSON.stringify(items));
           this.notifySubscribers(col);
         }
       } catch (err) {
@@ -407,7 +423,7 @@ class ChoiceDataStore {
 
     // Remote sync
     if (syncRemote && isSupabaseConfigured() && Array.isArray(items)) {
-      if (collectionName === "attendance" || collectionName === "compliance" || collectionName === "bookings") {
+      if (collectionName === "attendance" || collectionName === "compliance" || collectionName === "bookings" || collectionName === "checklists") {
         fetch("/api/sync/save", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -440,7 +456,7 @@ class ChoiceDataStore {
 
     // Sync individual record to Supabase
     if (isSupabaseConfigured()) {
-      if (collectionName === "attendance" || collectionName === "compliance" || collectionName === "bookings") {
+      if (collectionName === "attendance" || collectionName === "compliance" || collectionName === "bookings" || collectionName === "checklists") {
         fetch("/api/sync/save", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -495,7 +511,7 @@ class ChoiceDataStore {
 
       // Sync individual update to Supabase
       if (isSupabaseConfigured()) {
-        if (collectionName === "attendance" || collectionName === "compliance" || collectionName === "bookings") {
+        if (collectionName === "attendance" || collectionName === "compliance" || collectionName === "bookings" || collectionName === "checklists") {
           fetch("/api/sync/save", {
             method: "POST",
             headers: { "Content-Type": "application/json" },

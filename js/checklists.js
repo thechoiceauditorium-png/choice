@@ -238,7 +238,11 @@ function renderActiveChecklist(checklists = []) {
                     <button class="btn btn-sm btn-secondary sign-item-btn" data-index="${idx}" style="padding: 0.15rem 0.4rem; font-size: 0.7rem;">
                       Sign
                     </button>
-                  ` : ''}
+                  ` : `
+                    <button class="btn btn-sm btn-outline sign-item-btn" data-index="${idx}" style="padding: 0.12rem 0.35rem; font-size: 0.68rem; color: #555;" title="Change signer to ${escapeHtml(currentUser.name)}">
+                      Change
+                    </button>
+                  `}
                 </div>
               </td>
               <td>
@@ -246,11 +250,17 @@ function renderActiveChecklist(checklists = []) {
                   <span style="font-size: 0.82rem; font-weight: bold; color: ${item.verifiedBy ? '#1565C0' : '#999'};">
                     ${escapeHtml(item.verifiedBy || 'Pending')}
                   </span>
-                  ${userIsOwner && !item.verifiedBy ? `
-                    <button class="btn btn-sm btn-outline verify-item-btn" data-index="${idx}" style="padding: 0.15rem 0.4rem; font-size: 0.7rem;">
-                      Verify
-                    </button>
-                  ` : ''}
+                  ${userIsOwner ? (
+                    !item.verifiedBy ? `
+                      <button class="btn btn-sm btn-outline verify-item-btn" data-index="${idx}" style="padding: 0.15rem 0.4rem; font-size: 0.7rem;">
+                        Verify
+                      </button>
+                    ` : `
+                      <button class="btn btn-sm btn-outline clear-verify-btn" data-index="${idx}" style="padding: 0.12rem 0.35rem; font-size: 0.68rem; color: #C62828;" title="Clear owner verification">
+                        Clear
+                      </button>
+                    `
+                  ) : ''}
                 </div>
               </td>
               <td style="font-size: 0.75rem; color: #888;">
@@ -278,33 +288,61 @@ function renderActiveChecklist(checklists = []) {
     chk.addEventListener("change", () => {
       const idx = Number(chk.dataset.index);
       const isChecked = chk.checked;
-      updateChecklistItem(currentChecklistId, idx, {
-        done: isChecked,
-        signedBy: isChecked ? (current.items[idx].signedBy || currentUser.name) : "",
-        timestamp: isChecked ? new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : ""
-      });
+      const targetItem = current.items[idx];
+      if (isChecked) {
+        updateChecklistItem(currentChecklistId, idx, {
+          done: true,
+          signedBy: targetItem.signedBy || currentUser.name,
+          verifiedBy: userIsOwner ? (targetItem.verifiedBy || currentUser.name) : (targetItem.verifiedBy || ""),
+          timestamp: targetItem.timestamp || new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })
+        });
+        showToast(`Task #${idx + 1} marked done.`);
+      } else {
+        updateChecklistItem(currentChecklistId, idx, {
+          done: false,
+          signedBy: "",
+          verifiedBy: "",
+          timestamp: ""
+        });
+        showToast(`Task #${idx + 1} reset to incomplete.`);
+      }
     });
   });
 
   container.querySelectorAll(".sign-item-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       const idx = Number(btn.dataset.index);
+      const targetItem = current.items[idx];
       updateChecklistItem(currentChecklistId, idx, {
         done: true,
         signedBy: currentUser.name,
-        timestamp: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })
+        timestamp: targetItem.timestamp || new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })
       });
-      showToast(`Item signed by ${currentUser.name}`);
+      showToast(`Task #${idx + 1} signed by ${currentUser.name}`);
     });
   });
 
   container.querySelectorAll(".verify-item-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       const idx = Number(btn.dataset.index);
+      const targetItem = current.items[idx];
       updateChecklistItem(currentChecklistId, idx, {
-        verifiedBy: currentUser.name
+        done: true,
+        verifiedBy: currentUser.name,
+        signedBy: targetItem.signedBy || currentUser.name,
+        timestamp: targetItem.timestamp || new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })
       });
-      showToast(`Verified by ${currentUser.name}`);
+      showToast(`Task #${idx + 1} verified by ${currentUser.name}`);
+    });
+  });
+
+  container.querySelectorAll(".clear-verify-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const idx = Number(btn.dataset.index);
+      updateChecklistItem(currentChecklistId, idx, {
+        verifiedBy: ""
+      });
+      showToast(`Verification cleared for task #${idx + 1}`);
     });
   });
 
@@ -332,7 +370,9 @@ function renderActiveChecklist(checklists = []) {
           target.items.splice(idx, 1);
           // Renumber items
           target.items.forEach((it, i) => it.sl = i + 1);
-          dbStore.save("checklists", checklists);
+          const allDone = target.items.length > 0 && target.items.every(i => i.done);
+          target.status = allDone ? "Completed" : "In Progress";
+          dbStore.update("checklists", currentChecklistId, target);
           showToast("Item deleted.");
         }
       }
@@ -358,7 +398,8 @@ function renderActiveChecklist(checklists = []) {
         verifiedBy: "",
         timestamp: ""
       });
-      dbStore.save("checklists", checklists);
+      target.status = "In Progress";
+      dbStore.update("checklists", currentChecklistId, target);
       showToast("Item added to checklist.");
     }
   };
@@ -394,7 +435,7 @@ function handleSaveSingleItem() {
   const target = checklists.find(c => c.id === currentChecklistId);
   if (target && target.items[idx]) {
     target.items[idx].text = text;
-    dbStore.save("checklists", checklists);
+    dbStore.update("checklists", currentChecklistId, target);
     showToast("Checklist item updated.");
     closeModal("edit-item-modal");
   }
@@ -445,9 +486,9 @@ function updateChecklistItem(chkId, itemIndex, updates) {
   const target = checklists.find(c => c.id === chkId);
   if (target && target.items[itemIndex]) {
     target.items[itemIndex] = { ...target.items[itemIndex], ...updates };
-    const allDone = target.items.every(i => i.done);
+    const allDone = target.items.length > 0 && target.items.every(i => i.done);
     target.status = allDone ? "Completed" : "In Progress";
-    dbStore.save("checklists", checklists);
+    dbStore.update("checklists", chkId, target);
   }
 }
 
