@@ -407,15 +407,23 @@ class ChoiceDataStore {
 
     // Remote sync
     if (syncRemote && isSupabaseConfigured() && Array.isArray(items)) {
-      getSupabase().then(sb => {
-        if (sb) {
-          const tableName = collectionName === "users" ? "team_users" : collectionName;
-          const sanitizedItems = items.map(i => sanitizeForSupabase(tableName, i));
-          sb.from(tableName).upsert(sanitizedItems).then(({ error }) => {
-            if (error) console.warn(`Supabase save error on ${collectionName}:`, error);
-          });
-        }
-      }).catch(err => console.warn(err));
+      if (collectionName === "compliance") {
+        fetch("/api/compliance/save", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ items })
+        }).catch(err => console.warn("Compliance remote sync error:", err));
+      } else {
+        getSupabase().then(sb => {
+          if (sb) {
+            const tableName = collectionName === "users" ? "team_users" : collectionName;
+            const sanitizedItems = items.map(i => sanitizeForSupabase(tableName, i));
+            sb.from(tableName).upsert(sanitizedItems).then(({ error }) => {
+              if (error) console.warn(`Supabase save error on ${collectionName}:`, error);
+            });
+          }
+        }).catch(err => console.warn(err));
+      }
     }
   }
 
@@ -432,34 +440,42 @@ class ChoiceDataStore {
 
     // Sync individual record to Supabase
     if (isSupabaseConfigured()) {
-      getSupabase().then(sb => {
-        if (sb) {
-          const tableName = collectionName === "users" ? "team_users" : collectionName;
-          const sanitized = sanitizeForSupabase(tableName, item);
-          sb.from(tableName).upsert([sanitized]).then(({ error }) => {
-            if (error) {
-              console.warn(`Supabase add error on ${collectionName}:`, error);
-              const isConflict = Boolean(
-                error && (
-                  error.code === "23P01" ||
-                  (error.message && error.message.includes("no_overlapping_confirmed_bookings")) ||
-                  (error.details && error.details.includes("no_overlapping_confirmed_bookings")) ||
-                  (error.message && error.message.includes("exclusion constraint"))
-                )
-              );
-              if (isConflict) {
-                if (collectionName === "bookings") {
-                  const currentItems = this.get(collectionName).filter(i => i.id !== item.id);
-                  this.save(collectionName, currentItems, false);
+      if (collectionName === "compliance") {
+        fetch("/api/compliance/save", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ items: [item] })
+        }).catch(err => console.warn("Compliance add sync error:", err));
+      } else {
+        getSupabase().then(sb => {
+          if (sb) {
+            const tableName = collectionName === "users" ? "team_users" : collectionName;
+            const sanitized = sanitizeForSupabase(tableName, item);
+            sb.from(tableName).upsert([sanitized]).then(({ error }) => {
+              if (error) {
+                console.warn(`Supabase add error on ${collectionName}:`, error);
+                const isConflict = Boolean(
+                  error && (
+                    error.code === "23P01" ||
+                    (error.message && error.message.includes("no_overlapping_confirmed_bookings")) ||
+                    (error.details && error.details.includes("no_overlapping_confirmed_bookings")) ||
+                    (error.message && error.message.includes("exclusion constraint"))
+                  )
+                );
+                if (isConflict) {
+                  if (collectionName === "bookings") {
+                    const currentItems = this.get(collectionName).filter(i => i.id !== item.id);
+                    this.save(collectionName, currentItems, false);
+                  }
+                  window.dispatchEvent(new CustomEvent("choice:booking-conflict", {
+                    detail: { message: "This slot was just booked by someone else. Please choose a different time slot." }
+                  }));
                 }
-                window.dispatchEvent(new CustomEvent("choice:booking-conflict", {
-                  detail: { message: "This slot was just booked by someone else. Please choose a different time slot." }
-                }));
               }
-            }
-          });
-        }
-      }).catch(err => console.warn(err));
+            });
+          }
+        }).catch(err => console.warn(err));
+      }
     }
 
     return item;
@@ -479,36 +495,44 @@ class ChoiceDataStore {
 
       // Sync individual update to Supabase
       if (isSupabaseConfigured()) {
-        getSupabase().then(sb => {
-          if (sb) {
-            const tableName = collectionName === "users" ? "team_users" : collectionName;
-            const sanitized = sanitizeForSupabase(tableName, { ...updates, id });
-            sb.from(tableName).update(sanitized).eq("id", id).then(({ error }) => {
-              if (error) {
-                console.warn(`Supabase update error on ${collectionName}:`, error);
-                const isConflict = Boolean(
-                  error && (
-                    error.code === "23P01" ||
-                    (error.message && error.message.includes("no_overlapping_confirmed_bookings")) ||
-                    (error.details && error.details.includes("no_overlapping_confirmed_bookings")) ||
-                    (error.message && error.message.includes("exclusion constraint"))
-                  )
-                );
-                if (isConflict) {
-                  const revertItems = this.get(collectionName);
-                  const revIdx = revertItems.findIndex(i => i.id === id);
-                  if (revIdx !== -1) {
-                    revertItems[revIdx] = originalRecord;
-                    this.save(collectionName, revertItems, false);
+        if (collectionName === "compliance") {
+          fetch("/api/compliance/save", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ items: [items[index]] })
+          }).catch(err => console.warn("Compliance update sync error:", err));
+        } else {
+          getSupabase().then(sb => {
+            if (sb) {
+              const tableName = collectionName === "users" ? "team_users" : collectionName;
+              const sanitized = sanitizeForSupabase(tableName, { ...updates, id });
+              sb.from(tableName).update(sanitized).eq("id", id).then(({ error }) => {
+                if (error) {
+                  console.warn(`Supabase update error on ${collectionName}:`, error);
+                  const isConflict = Boolean(
+                    error && (
+                      error.code === "23P01" ||
+                      (error.message && error.message.includes("no_overlapping_confirmed_bookings")) ||
+                      (error.details && error.details.includes("no_overlapping_confirmed_bookings")) ||
+                      (error.message && error.message.includes("exclusion constraint"))
+                    )
+                  );
+                  if (isConflict) {
+                    const revertItems = this.get(collectionName);
+                    const revIdx = revertItems.findIndex(i => i.id === id);
+                    if (revIdx !== -1) {
+                      revertItems[revIdx] = originalRecord;
+                      this.save(collectionName, revertItems, false);
+                    }
+                    window.dispatchEvent(new CustomEvent("choice:booking-conflict", {
+                      detail: { message: "This slot was just booked by someone else. Please choose a different time slot." }
+                    }));
                   }
-                  window.dispatchEvent(new CustomEvent("choice:booking-conflict", {
-                    detail: { message: "This slot was just booked by someone else. Please choose a different time slot." }
-                  }));
                 }
-              }
-            });
-          }
-        }).catch(err => console.warn(err));
+              });
+            }
+          }).catch(err => console.warn(err));
+        }
       }
 
       return items[index];

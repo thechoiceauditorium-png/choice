@@ -299,6 +299,29 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // API Route: Statutory Compliance Save & Cycle Advance (bypasses faulty trigger)
+  if (urlPath === "/api/compliance/save") {
+    let body = {};
+    try { body = await parseJsonBody(req); } catch (e) {}
+    req.body = body;
+    const saveHandler = require("./api/compliance/save.js");
+    const fakeRes = {
+      setHeader: (k, v) => res.setHeader(k, v),
+      status: (c) => {
+        res.statusCode = c;
+        return fakeRes;
+      },
+      json: (d) => {
+        res.setHeader("Content-Type", "application/json");
+        res.setHeader("Access-Control-Allow-Origin", "*");
+        res.end(JSON.stringify(d));
+      },
+      end: () => res.end()
+    };
+    await saveHandler(req, fakeRes);
+    return;
+  }
+
   // API Route: Public client environment config (safe anon key only)
   if (urlPath === "/api/config") {
     res.writeHead(200, {
